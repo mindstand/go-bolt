@@ -15,11 +15,11 @@ type Tx interface {
 }
 
 type boltTx struct {
-	conn   *BoltConn
+	conn   IConnection
 	closed bool
 }
 
-func newTx(conn *BoltConn) *boltTx {
+func newTx(conn IConnection) *boltTx {
 	return &boltTx{
 		conn: conn,
 	}
@@ -30,8 +30,8 @@ func (t *boltTx) Commit() error {
 	if t.closed {
 		return errors.New("Transaction already closed")
 	}
-	if t.conn.statement != nil {
-		if err := t.conn.statement.Close(); err != nil {
+	if t.conn.getStatement() != nil {
+		if err := t.conn.getStatement().Close(); err != nil {
 			return errors.Wrap(err, "An error occurred closing open rows in transaction Commit")
 		}
 	}
@@ -55,7 +55,7 @@ func (t *boltTx) Commit() error {
 
 	log.Infof("Got success message pulling transaction: %#v", pull)
 
-	t.conn.transaction = nil
+	t.conn.setTx(nil)
 	t.closed = true
 	return err
 }
@@ -65,8 +65,8 @@ func (t *boltTx) Rollback() error {
 	if t.closed {
 		return errors.New("Transaction already closed")
 	}
-	if t.conn.statement != nil {
-		if err := t.conn.statement.Close(); err != nil {
+	if t.conn.getStatement() != nil {
+		if err := t.conn.getStatement().Close(); err != nil {
 			return errors.Wrap(err, "An error occurred closing open rows in transaction Rollback")
 		}
 	}
@@ -90,7 +90,7 @@ func (t *boltTx) Rollback() error {
 
 	log.Infof("Got success message pulling transaction: %#v", pull)
 
-	t.conn.transaction = nil
+	t.conn.setTx(nil)
 	t.closed = true
 	return err
 }

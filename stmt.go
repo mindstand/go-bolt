@@ -17,9 +17,9 @@ type Stmt interface {
 	// Close Closes the statement. See sql/driver.Stmt.
 	Close() error
 	// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/driver.
-	ExecNeo(params map[string]interface{}) (Result, error)
+	ExecNeo(params QueryParams) (Result, error)
 	// QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/driver.
-	QueryNeo(params map[string]interface{}) (Rows, error)
+	QueryNeo(params QueryParams) (Rows, error)
 }
 
 // PipelineStmt represents a set of statements to run against the database
@@ -31,25 +31,25 @@ type PipelineStmt interface {
 	// Close Closes the statement. See sql/driver.Stmt.
 	Close() error
 	// ExecPipeline executes a set of queries that returns no rows.
-	ExecPipeline(params ...map[string]interface{}) ([]Result, error)
+	ExecPipeline(params ...QueryParams) ([]Result, error)
 	// QueryPipeline executes a set of queries that return data.
 	// Implements a Neo-friendly alternative to sql/driver.
-	QueryPipeline(params ...map[string]interface{}) (PipelineRows, error)
+	QueryPipeline(params ...QueryParams) (PipelineRows, error)
 }
 
 type boltStmt struct {
 	queries []string
 	query   string
-	conn    *BoltConn
+	conn    *Connection
 	closed  bool
 	rows    *boltRows
 }
 
-func newStmt(query string, conn *BoltConn) *boltStmt {
+func newStmt(query string, conn *Connection) *boltStmt {
 	return &boltStmt{query: query, conn: conn}
 }
 
-func newPipelineStmt(queries []string, conn *BoltConn) *boltStmt {
+func newPipelineStmt(queries []string, conn *Connection) *boltStmt {
 	return &boltStmt{queries: queries, conn: conn}
 }
 
@@ -88,7 +88,7 @@ func (s *boltStmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 // ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/driver.
-func (s *boltStmt) ExecNeo(params map[string]interface{}) (Result, error) {
+func (s *boltStmt) ExecNeo(params QueryParams) (Result, error) {
 	if s.closed {
 		return nil, errors.New("Neo4j Bolt statement already closed")
 	}
@@ -119,7 +119,7 @@ func (s *boltStmt) ExecNeo(params map[string]interface{}) (Result, error) {
 	return newResult(success.Metadata), nil
 }
 
-func (s *boltStmt) ExecPipeline(params ...map[string]interface{}) ([]Result, error) {
+func (s *boltStmt) ExecPipeline(params ...QueryParams) ([]Result, error) {
 	if s.closed {
 		return nil, errors.New("Neo4j Bolt statement already closed")
 	}
@@ -180,7 +180,7 @@ func (s *boltStmt) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 // QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/driver.
-func (s *boltStmt) QueryNeo(params map[string]interface{}) (Rows, error) {
+func (s *boltStmt) QueryNeo(params QueryParams) (Rows, error) {
 	return s.queryNeo(params)
 }
 
@@ -207,7 +207,7 @@ func (s *boltStmt) queryNeo(params map[string]interface{}) (*boltRows, error) {
 	return s.rows, nil
 }
 
-func (s *boltStmt) QueryPipeline(params ...map[string]interface{}) (PipelineRows, error) {
+func (s *boltStmt) QueryPipeline(params ...QueryParams) (PipelineRows, error) {
 	if s.closed {
 		return nil, errors.New("Neo4j Bolt statement already closed")
 	}
