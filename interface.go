@@ -1,15 +1,18 @@
 package goBolt
 
 import (
-	"database/sql/driver"
+	"net"
 	"time"
 )
 
+type IBoltConnectionFactory interface {
+	CreateBoltConnection(connStr string, timeout time.Duration, chunkSize uint16, readonly bool, version []byte) (IConnection, error)
+}
 
+// bolt+routing will not work for non pooled connections
 type IDriver interface {
 	// OpenNeo opens a Neo-specific connection.
 	Open(mode DriverMode) (IConnection, error)
-	Close() error
 }
 
 type IDriverPool interface {
@@ -19,10 +22,10 @@ type IDriverPool interface {
 	Close() error
 }
 
+// bolt+routing will not work for non pooled connections
 type IDriverV4 interface {
 	// OpenNeo opens a Neo-specific connection.
 	Open(db string, mode DriverMode) (IConnection, error)
-	Close() error
 }
 
 type IDriverPoolV4 interface {
@@ -62,7 +65,7 @@ type IConnection interface {
 	// Close closes the connection
 	Close() error
 	// Begin starts a new transaction
-	Begin() (driver.Tx, error)
+	Begin() (Tx, error)
 	// SetChunkSize is used to set the max chunk size of the
 	// bytes to send to Neo4j at once
 	SetChunkSize(uint16)
@@ -76,6 +79,20 @@ type IConnection interface {
 
 	getTx() Tx
 	setTx(tx Tx)
+
+	getConnection() net.Conn
+	setConnection(conn net.Conn)
+
+	getConnErr() error
+	setConnErr(err error)
+
+	getClosed() bool
+	setClosed(closed bool)
+
+	getReadOnly() bool
+	setReadOnly(readOnly bool)
+
+	initialize() error
 
 	sendRunPullAllConsumeSingle(string, map[string]interface{}) (interface{}, interface{}, error)
 }

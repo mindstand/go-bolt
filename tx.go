@@ -12,6 +12,8 @@ type Tx interface {
 	Commit() error
 	// Rollback rolls back the transaction
 	Rollback() error
+	// IsClosed determines if the transaction has been closed
+	IsClosed() bool
 }
 
 type boltTx struct {
@@ -93,4 +95,8 @@ func (t *boltTx) Rollback() error {
 	t.conn.setTx(nil)
 	t.closed = true
 	return err
+}
+
+func (t *boltTx) IsClosed() bool {
+	return t.closed
 }

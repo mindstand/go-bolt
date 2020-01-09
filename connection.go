@@ -20,6 +20,28 @@ import (
 	"time"
 )
 
+type BoltConnectionFactory struct {
+
+}
+
+func (b *BoltConnectionFactory) CreateBoltConnection(connStr string, timeout time.Duration, chunkSize uint16, readonly bool, version []byte) (IConnection, error) {
+	conn := &Connection{
+		connStr:       connStr,
+		connErr:       nil,
+		timeout:       time.Second * time.Duration(60),
+		chunkSize:     math.MaxUint16,
+		serverVersion: make([]byte, 4),
+		readOnly: readonly,
+	}
+
+	err := conn.initialize()
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
 type Connection struct {
 	connStr       string
 	url           *url.URL
@@ -37,7 +59,7 @@ type Connection struct {
 	keyFile       string
 	tlsNoVerify   bool
 	readOnly      bool
-	transaction   *boltTx
+	transaction   Tx
 	statement     *boltStmt
 }
 
@@ -423,7 +445,7 @@ func (c *Connection) prepare(query string) (*boltStmt, error) {
 }
 
 // Begin begins a new transaction with the Neo4J Database
-func (c *Connection) Begin() (driver.Tx, error) {
+func (c *Connection) Begin() (Tx, error) {
 	if c.transaction != nil {
 		return nil, errors.New("An open transaction already exists")
 	}
@@ -676,7 +698,7 @@ func (c *Connection) QueryNeo(query string, params QueryParams) (Rows, error) {
 	return c.queryNeo(query, params)
 }
 
-func (c *Connection) QueryNeoAll(query string, params QueryParams) ([][]interface{}, map[string]interface{}, map[string]interface{}, error) {
+func (c *Connection) QueryNeoAll(query string, params QueryParams) (NeoRows, map[string]interface{}, map[string]interface{}, error) {
 	rows, err := c.queryNeo(query, params)
 	if err != nil {
 		return nil, nil, nil, err
@@ -783,4 +805,52 @@ func (c *Connection) ExecPipeline(queries []string, params ...QueryParams) ([]Re
 	defer stmt.Close()
 
 	return stmt.ExecPipeline(params...)
+}
+
+func (c *Connection) getStatement() *boltStmt {
+	return c.statement
+}
+
+func (c *Connection) setStatement(stmt *boltStmt) {
+	c.statement = stmt
+}
+
+func (c *Connection) getTx() Tx {
+	return c.transaction
+}
+
+func (c *Connection) setTx(tx Tx) {
+	c.transaction = tx
+}
+
+func (c *Connection) getConnection() net.Conn {
+	return c.conn
+}
+
+func (c *Connection) setConnection(conn net.Conn) {
+	c.conn = conn
+}
+
+func (c *Connection) getConnErr() error {
+	return c.connErr
+}
+
+func (c *Connection) setConnErr(err error) {
+	c.connErr = err
+}
+
+func (c *Connection) getClosed() bool {
+	return c.closed
+}
+
+func (c *Connection) setClosed(closed bool) {
+	c.closed = closed
+}
+
+func (c *Connection) getReadOnly() bool {
+	return c.readOnly
+}
+
+func (c *Connection) setReadOnly(readOnly bool) {
+	c.readOnly = readOnly
 }

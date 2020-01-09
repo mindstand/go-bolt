@@ -40,7 +40,7 @@ type Client struct {
 	keyFile          string
 	tlsNoVerify      bool
 	readOnly         bool
-
+	supportsV4 bool
 	// pool stuff
 	connectionPool pool.ObjectPool
 }
@@ -63,22 +63,30 @@ func NewClient(opts ...Opt) (IClient, error) {
 		}
 	}
 
+	// todo calculate some stuff
+
 	return client, nil
 }
 
-func (c Client) NewDriver() (IDriver, error) {
+func (c *Client) NewDriver() (IDriver, error) {
 	panic("implement me")
 }
 
-func (c Client) NewDriverPool() (IDriverPool, error) {
+func (c *Client) NewDriverPool() (IDriverPool, error) {
 	panic("implement me")
 }
 
-func (c Client) NewDriverV4() (IDriverV4, error) {
+func (c *Client) NewDriverV4() (IDriverV4, error) {
+	if !c.supportsV4 {
+		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 driver when actual version is [%s]", string(c.serverVersion))
+	}
 	panic("implement me")
 }
 
-func (c Client) NewDriverPoolV4() (IDriverPoolV4, error) {
+func (c *Client) NewDriverPoolV4() (IDriverPoolV4, error) {
+	if !c.supportsV4 {
+		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 driver when actual version is [%s]", string(c.serverVersion))
+	}
 	panic("implement me")
 }
 

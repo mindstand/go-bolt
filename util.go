@@ -1,9 +1,13 @@
 package goBolt
 
 import (
+	"context"
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"github.com/mindstand/go-bolt/log"
+	"math/rand"
+	"time"
 
 	"github.com/mindstand/go-bolt/encoding"
 )
@@ -49,4 +53,55 @@ func driverArgsToMap(args []driver.Value) (map[string]interface{}, error) {
 	}
 
 	return output, nil
+}
+
+func connectionNilOrClosed(conn IConnection) bool {
+	if conn.getConnection() == nil { //nil check before attempting read
+		return true
+	}
+	err := conn.getConnection().SetReadDeadline(time.Now())
+	if err != nil {
+		log.Error("Bad Connection state detected", err) //the error caught here could be a io.EOF or a timeout, either way we want to log the error & return true
+		return true
+	}
+
+	zero := make([]byte, 0)
+
+	_, err = conn.getConnection().Read(zero) //read zero bytes to validate connection is still alive
+	if err != nil {
+		log.Error("Bad Connection state detected", err) //the error caught here could be a io.EOF or a timeout, either way we want to log the error & return true
+		return true
+	}
+
+	//check if there were any connection errors
+	if conn.getConnErr() != nil {
+		return true
+	}
+
+	return false
+}
+
+func getPoolFunc(connStrs []string, readonly bool) func(ctx context.Context) (interface{}, error) {
+	return func(ctx context.Context) (interface{}, error) {
+		if len(connStrs) == 0 {
+			return nil, errors.New("no connection strings provided")
+		}
+
+		var i int
+
+		if len(connStrs) == 1 {
+			i = 0
+		} else {
+			i = rand.Intn(len(connStrs))
+		}
+
+		conn, err := createBoltConn(connStrs[i])
+		if err != nil {
+			return nil, err
+		}
+		//set whether or not it is readonly
+		conn.readOnly = readonly
+
+		return conn, nil
+	}
 }
