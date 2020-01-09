@@ -1,0 +1,25 @@
+version: '3'
+
+networks:
+  lan:
+
+services:
+
+  core1:
+    image: neo4j:3.5-enterprise
+    networks:
+      - lan
+    ports:
+      - 7474:7474
+      - 6477:6477
+      - 7687:7687
+    volumes:
+      - $HOME/neo4j/neo4j-core1/conf:/conf
+      - $HOME/neo4j/neo4j-core1/data:/data
+      - $HOME/neo4j/neo4j-core1/logs:/logs
+      - $HOME/neo4j/neo4j-core1/plugins:/plugins
+    environment:
+      #      - NEO4J_AUTH=none
+      - NEO4J_AUTH=neo4j/changeme
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+
