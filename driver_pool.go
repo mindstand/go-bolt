@@ -16,8 +16,8 @@ type driverPool struct {
 	closed   bool
 }
 
-func newDriverPool(connStr string, maxConns int, poolFunc func(context.Context) (interface{}, error)) (*driverPool, error) {
-	dPool := pool.NewObjectPool(context.Background(), pool.NewPooledObjectFactorySimple(poolFunc), &pool.ObjectPoolConfig{
+func newDriverPool(connStr string, maxConns int) (*driverPool, error) {
+	dPool := pool.NewObjectPool(context.Background(), pool.NewPooledObjectFactorySimple(getPoolFunc([]string{connStr}, false)), &pool.ObjectPoolConfig{
 		LIFO:                     true,
 		MaxTotal:                 maxConns,
 		MaxIdle:                  maxConns,

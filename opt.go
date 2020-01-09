@@ -167,3 +167,15 @@ func WithPool(max int) Opt {
 		return nil
 	}
 }
+
+func WithV4CreateDBIfNotExists() Opt {
+	return func(client *Client) error {
+		if client == nil {
+			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
+		}
+
+		client.createDbIfNotExists = true
+
+		return nil
+	}
+}

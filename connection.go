@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"database/sql/driver"
 	"fmt"
 	"github.com/mindstand/go-bolt/encoding"
 	"github.com/mindstand/go-bolt/errors"
@@ -20,18 +19,20 @@ import (
 	"time"
 )
 
-type BoltConnectionFactory struct {
-
+type boltConnectionFactory struct {
+	connStr       string
+	serverVersion []byte
+	timeout       time.Duration
+	chunkSize     uint16
 }
 
-func (b *BoltConnectionFactory) CreateBoltConnection(connStr string, timeout time.Duration, chunkSize uint16, readonly bool, version []byte) (IConnection, error) {
+func (b *boltConnectionFactory) CreateBoltConnection() (IConnection, error) {
 	conn := &Connection{
-		connStr:       connStr,
+		connStr:       b.connStr,
 		connErr:       nil,
-		timeout:       time.Second * time.Duration(60),
-		chunkSize:     math.MaxUint16,
-		serverVersion: make([]byte, 4),
-		readOnly: readonly,
+		timeout:       b.timeout,
+		chunkSize:     b.chunkSize,
+		serverVersion: b.serverVersion,
 	}
 
 	err := conn.initialize()
@@ -411,11 +412,6 @@ func (c *Connection) reset() error {
 	}
 }
 
-// Prepare prepares a new statement for a query
-func (c *Connection) Prepare(query string) (driver.Stmt, error) {
-	return c.prepare(query)
-}
-
 // Prepare prepares a new statement for a query. Implements a Neo-friendly alternative to sql/driver.
 func (c *Connection) PrepareNeo(query string) (Stmt, error) {
 	return c.prepare(query)
@@ -686,14 +682,6 @@ func (c *Connection) sendRunDiscardAllConsume(query string, args map[string]inte
 	return runResp, discardResp, err
 }
 
-func (c *Connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	params, err := driverArgsToMap(args)
-	if err != nil {
-		return nil, err
-	}
-	return c.queryNeo(query, params)
-}
-
 func (c *Connection) QueryNeo(query string, params QueryParams) (Rows, error) {
 	return c.queryNeo(query, params)
 }
@@ -760,22 +748,6 @@ func (c *Connection) QueryPipeline(queries []string, params ...QueryParams) (Pip
 	// tell the rows to close it when they are closed
 	rows.(*boltRows).closeStatement = true
 	return rows, nil
-}
-
-// Exec executes a query that returns no rows. See sql/driver.Stmt.
-// You must bolt encode a map to pass as []bytes for the driver value
-func (c *Connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	if c.statement != nil {
-		return nil, errors.New("An open statement already exists")
-	}
-	if c.closed {
-		return nil, errors.New("Connection already closed")
-	}
-
-	stmt := newStmt(query, c)
-	defer stmt.Close()
-
-	return stmt.Exec(args)
 }
 
 // ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/driver.

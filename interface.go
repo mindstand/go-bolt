@@ -6,7 +6,7 @@ import (
 )
 
 type IBoltConnectionFactory interface {
-	CreateBoltConnection(connStr string, timeout time.Duration, chunkSize uint16, readonly bool, version []byte) (IConnection, error)
+	CreateBoltConnection() (IConnection, error)
 }
 
 // bolt+routing will not work for non pooled connections
