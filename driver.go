@@ -6,22 +6,22 @@ import (
 )
 
 type Driver struct {
-	connStr       string
-	host string
-	port int
-	routing bool
+	connStr          string
+	host             string
+	port             int
+	routing          bool
 	negotiateVersion bool
-	user          string
-	password      string
-	serverVersion []byte
-	timeout       time.Duration
-	chunkSize     uint16
-	useTLS        bool
-	certFile      string
-	caCertFile    string
-	keyFile       string
-	tlsNoVerify   bool
-	readOnly      bool
+	user             string
+	password         string
+	serverVersion    []byte
+	timeout          time.Duration
+	chunkSize        uint16
+	useTLS           bool
+	certFile         string
+	caCertFile       string
+	keyFile          string
+	tlsNoVerify      bool
+	readOnly         bool
 }
 
 func NewDriver(opts ...Opt) (*Driver, error) {

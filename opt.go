@@ -29,11 +29,11 @@ func WithHostPort(host string, port int) Opt {
 		if driver == nil {
 			return errors.Wrap(errors.ErrConfiguration, "driver can not be nil")
 		}
-		
+
 		if driver.connStr != "" {
 			return errors.Wrap(errors.ErrConfiguration, "can not call WithHostPort and WithConnectionString")
 		}
-		
+
 		driver.host = host
 		driver.port = port
 		return nil
@@ -46,7 +46,7 @@ func WithRouting() Opt {
 		if driver == nil {
 			return errors.Wrap(errors.ErrConfiguration, "driver can not be nil")
 		}
-		
+
 		if driver.connStr != "" {
 			return errors.Wrap(errors.ErrConfiguration, "can not call WithRouting and WithConnectionString")
 		}
