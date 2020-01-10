@@ -19,6 +19,8 @@ type routingDriverPool struct {
 	username string
 	password string
 
+	client *Client
+
 	//compose configuration
 	config *clusterConnectionConfig
 
@@ -85,20 +87,39 @@ func newRoutingDriverPool(connStr string, max int, poolFunc func(context.Context
 
 func (b *routingDriverPool) refreshConnectionPool() error {
 	//get the connection info
-	clusterInfoDriver, err := NewDriver().OpenNeo(b.connStr)
-	if err != nil {
-		return err
+	var clusterInfoConn IConnection
+
+	if b.client.supportsV4 {
+		clusterInfoDriver, err := b.client.NewDriverV4()
+		if err != nil {
+			return err
+		}
+
+		clusterInfoConn, err = clusterInfoDriver.Open("system", ReadWriteMode)
+		if err != nil {
+			return err
+		}
+	} else {
+		clusterInfoDriver, err := b.client.NewDriver()
+		if err != nil {
+			return err
+		}
+
+		clusterInfoConn, err = clusterInfoDriver.Open(ReadWriteMode)
+		if err != nil {
+			return err
+		}
 	}
 
-	clusterInfo, err := getClusterInfo(clusterInfoDriver)
+	clusterInfo, err := getClusterInfo(clusterInfoConn)
 	if err != nil {
 		return err
 	}
 
 	b.config = clusterInfo
 
-	//close original driver
-	err = clusterInfoDriver.Close()
+	//close original internalDriver
+	err = clusterInfoConn.Close()
 	if err != nil {
 		return err
 	}
@@ -266,7 +287,7 @@ func (b *routingDriverPool) open(db string, mode DriverMode) (IConnection, error
 			}
 			break
 		default:
-			return nil, errors.New("invalid driver mode")
+			return nil, errors.New("invalid internalDriver mode")
 		}
 
 		//check to make sure the connection is open

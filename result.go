@@ -5,7 +5,7 @@ import "github.com/mindstand/go-bolt/errors"
 // Result represents a result from a query that returns no data
 type Result interface {
 	// LastInsertId Always returns -1. This is necessary
-	// to meet the sql.driver interface
+	// to meet the sql.internalDriver interface
 	LastInsertId() (int64, error)
 	// RowsAffected returns the number of rows affected
 	// This doesn't currently support updates, only

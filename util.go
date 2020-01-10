@@ -2,7 +2,6 @@ package goBolt
 
 import (
 	"context"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"github.com/mindstand/go-bolt/log"
@@ -31,9 +30,9 @@ func sprintByteHex(b []byte) string {
 	return output
 }
 
-// driverArgsToMap turns driver.Value list into a parameter map
+// driverArgsToMap turns internalDriver.Value list into a parameter map
 // for neo4j parameters
-func driverArgsToMap(args []driver.Value) (map[string]interface{}, error) {
+func driverArgsToMap(args []Value) (map[string]interface{}, error) {
 	output := map[string]interface{}{}
 	for _, arg := range args {
 		argBytes, ok := arg.([]byte)
@@ -95,7 +94,7 @@ func getPoolFunc(connStrs []string, readonly bool) func(ctx context.Context) (in
 			i = rand.Intn(len(connStrs))
 		}
 
-		conn, err := createBoltConn(connStrs[i])
+		conn, err := createConnection(connStrs[i])
 		if err != nil {
 			return nil, err
 		}

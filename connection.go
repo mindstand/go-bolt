@@ -260,7 +260,7 @@ func (c *Connection) initialize() error {
 		log.Errorf("Got an unrecognized message when initializing connection :%+v", resp)
 		c.connErr = errors.New("Unrecognized response from the server: %#v", resp)
 		c.Close()
-		return driver.ErrBadConn
+		return errors.ErrConnection
 	}
 
 	return nil
@@ -270,7 +270,7 @@ func (c *Connection) initialize() error {
 func (c *Connection) Read(b []byte) (n int, err error) {
 	if err := c.conn.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
 		c.connErr = errors.Wrap(err, "An error occurred setting read deadline")
-		return 0, driver.ErrBadConn
+		return 0, errors.ErrConnection
 	}
 
 	n, err = c.conn.Read(b)
@@ -281,7 +281,7 @@ func (c *Connection) Read(b []byte) (n int, err error) {
 
 	if err != nil && err != io.EOF {
 		c.connErr = errors.Wrap(err, "An error occurred reading from stream")
-		err = driver.ErrBadConn
+		err = errors.ErrConnection
 	}
 	return n, err
 }
@@ -290,7 +290,7 @@ func (c *Connection) Read(b []byte) (n int, err error) {
 func (c *Connection) Write(b []byte) (n int, err error) {
 	if err := c.conn.SetWriteDeadline(time.Now().Add(c.timeout)); err != nil {
 		c.connErr = errors.Wrap(err, "An error occurred setting write deadline")
-		return 0, driver.ErrBadConn
+		return 0, errors.ErrConnection
 	}
 
 	n, err = c.conn.Write(b)
@@ -301,7 +301,7 @@ func (c *Connection) Write(b []byte) (n int, err error) {
 
 	if err != nil {
 		c.connErr = errors.Wrap(err, "An error occurred writing to stream")
-		err = driver.ErrBadConn
+		err = errors.ErrConnection
 	}
 	return n, err
 }
@@ -334,7 +334,7 @@ func (c *Connection) Close() error {
 	c.closed = true
 	if err != nil {
 		c.connErr = errors.Wrap(err, "An error occurred closing the connection")
-		return driver.ErrBadConn
+		return errors.ErrConnection
 	}
 
 	return nil
@@ -369,7 +369,7 @@ func (c *Connection) ackFailure(failure messages.FailureMessage) error {
 			log.Errorf("Got unrecognized response from acking failure: %#v", resp)
 			c.connErr = errors.New("Got unrecognized response from acking failure: %#v. CLOSING SESSION!", resp)
 			c.Close()
-			return driver.ErrBadConn
+			return errors.ErrConnection
 		}
 	}
 }
@@ -407,12 +407,12 @@ func (c *Connection) reset() error {
 			log.Errorf("Got unrecognized response from resetting session: %#v", resp)
 			c.connErr = errors.New("Got unrecognized response from resetting session: %#v. CLOSING SESSION!", resp)
 			c.Close()
-			return driver.ErrBadConn
+			return errors.ErrConnection
 		}
 	}
 }
 
-// Prepare prepares a new statement for a query. Implements a Neo-friendly alternative to sql/driver.
+// Prepare prepares a new statement for a query. Implements a Neo-friendly alternative to sql/internalDriver.
 func (c *Connection) PrepareNeo(query string) (Stmt, error) {
 	return c.prepare(query)
 }
@@ -750,7 +750,7 @@ func (c *Connection) QueryPipeline(queries []string, params ...QueryParams) (Pip
 	return rows, nil
 }
 
-// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/driver.
+// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/internalDriver.
 func (c *Connection) ExecNeo(query string, params QueryParams) (Result, error) {
 	if c.statement != nil {
 		return nil, errors.New("An open statement already exists")

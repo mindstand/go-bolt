@@ -39,11 +39,11 @@ type IDriverPoolV4 interface {
 //
 // Implements a neo-friendly interface.
 // Some of the features of this interface implement neo-specific features
-// unavailable in the sql/driver compatible interface
+// unavailable in the sql/internalDriver compatible interface
 //
 // Conn objects, and any prepared statements/transactions within ARE NOT
 // THREAD SAFE.  If you want to use multipe go routines with these objects,
-// you should use a driver to create a new conn for each routine.
+// you should use a internalDriver to create a new conn for each routine.
 type IConnection interface {
 	// PrepareNeo prepares a neo4j specific statement
 	PrepareNeo(query string) (Stmt, error)

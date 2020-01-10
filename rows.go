@@ -15,7 +15,7 @@ import (
 //
 // Row objects ARE NOT THREAD SAFE.
 // If you want to use multiple go routines with these objects,
-// you should use a driver to create a new conn for each routine.
+// you should use a internalDriver to create a new conn for each routine.
 type Rows interface {
 	// Columns Gets the names of the columns in the returned dataset
 	Columns() []string
@@ -37,7 +37,7 @@ type Rows interface {
 //
 // Row objects ARE NOT THREAD SAFE.
 // If you want to use multiple go routines with these objects,
-// you should use a driver to create a new conn for each routine.
+// you should use a internalDriver to create a new conn for each routine.
 type PipelineRows interface {
 	// Columns Gets the names of the columns in the returned dataset
 	Columns() []string
@@ -170,7 +170,7 @@ func (r *boltRows) Close() error {
 }
 
 // Next gets the next row result
-func (r *boltRows) Next(dest []driver.Value) error {
+func (r *boltRows) Next(dest []Value) error {
 	data, _, err := r.NextNeo()
 	if err != nil {
 		return err

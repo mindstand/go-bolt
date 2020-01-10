@@ -9,7 +9,7 @@ import (
 
 type driverPool struct {
 	connStr  string
-	isV4 bool
+	isV4     bool
 	maxConns int
 	pool     *pool.ObjectPool
 	refLock  sync.Mutex
@@ -85,7 +85,7 @@ func (d *driverPool) close() error {
 	defer d.refLock.Unlock()
 
 	if d.closed {
-		return errors.Wrap(errors.ErrClosed, "driver pool is already closed")
+		return errors.Wrap(errors.ErrClosed, "internalDriver pool is already closed")
 	}
 
 	if d.pool == nil {
@@ -174,4 +174,3 @@ func (d *DriverPoolV4) Reclaim(conn IConnection) error {
 func (d *DriverPoolV4) Close() error {
 	return d.internalPool.close()
 }
-

@@ -1,13 +1,13 @@
 package goBolt
 
-type driver struct {
-	recorder *recorder
+type internalDriver struct {
+	recorder          *recorder
 	createIfNotExists bool
 	connectionFactory IBoltConnectionFactory
 }
 
 type Driver struct {
-	internalDriver *driver
+	internalDriver *internalDriver
 }
 
 func (d *Driver) Open(mode DriverMode) (IConnection, error) {
@@ -15,7 +15,7 @@ func (d *Driver) Open(mode DriverMode) (IConnection, error) {
 }
 
 type DriverV4 struct {
-	internalDriver *driver
+	internalDriver *internalDriver
 }
 
 func (d DriverV4) Open(db string, mode DriverMode) (IConnection, error) {
@@ -31,7 +31,3 @@ func (d DriverV4) Open(db string, mode DriverMode) (IConnection, error) {
 
 	return conn, nil
 }
-
-
-
-

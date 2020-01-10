@@ -1,8 +1,6 @@
 package goBolt
 
 import (
-	"database/sql/driver"
-
 	"github.com/mindstand/go-bolt/errors"
 	"github.com/mindstand/go-bolt/log"
 	"github.com/mindstand/go-bolt/structures/messages"
@@ -12,13 +10,13 @@ import (
 //
 // Stmt objects, and any rows prepared within ARE NOT
 // THREAD SAFE.  If you want to use multiple go routines with these objects,
-// you should use a driver to create a new conn for each routine.
+// you should use a internalDriver to create a new conn for each routine.
 type Stmt interface {
-	// Close Closes the statement. See sql/driver.Stmt.
+	// Close Closes the statement. See sql/internalDriver.Stmt.
 	Close() error
-	// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/driver.
+	// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/internalDriver.
 	ExecNeo(params QueryParams) (Result, error)
-	// QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/driver.
+	// QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/internalDriver.
 	QueryNeo(params QueryParams) (Rows, error)
 }
 
@@ -26,14 +24,14 @@ type Stmt interface {
 //
 // PipelineStmt objects, and any rows prepared within ARE NOT
 // THREAD SAFE.  If you want to use multiple go routines with these objects,
-// you should use a driver to create a new conn for each routine.
+// you should use a internalDriver to create a new conn for each routine.
 type PipelineStmt interface {
-	// Close Closes the statement. See sql/driver.Stmt.
+	// Close Closes the statement. See sql/internalDriver.Stmt.
 	Close() error
 	// ExecPipeline executes a set of queries that returns no rows.
 	ExecPipeline(params ...QueryParams) ([]Result, error)
 	// QueryPipeline executes a set of queries that return data.
-	// Implements a Neo-friendly alternative to sql/driver.
+	// Implements a Neo-friendly alternative to sql/internalDriver.
 	QueryPipeline(params ...QueryParams) (PipelineRows, error)
 }
 
@@ -53,7 +51,7 @@ func newPipelineStmt(queries []string, conn *Connection) *boltStmt {
 	return &boltStmt{queries: queries, conn: conn}
 }
 
-// Close Closes the statement. See sql/driver.Stmt.
+// Close Closes the statement. See sql/internalDriver.Stmt.
 func (s *boltStmt) Close() error {
 	if s.closed {
 		return nil
@@ -71,23 +69,13 @@ func (s *boltStmt) Close() error {
 	return nil
 }
 
-// NumInput returns the number of placeholder parameters. See sql/driver.Stmt.
+// NumInput returns the number of placeholder parameters. See sql/internalDriver.Stmt.
 // Currently will always return -1
 func (s *boltStmt) NumInput() int {
 	return -1 // TODO: would need a cypher parser for this. disable for now
 }
 
-// Exec executes a query that returns no rows. See sql/driver.Stmt.
-// You must bolt encode a map to pass as []bytes for the driver value
-func (s *boltStmt) Exec(args []driver.Value) (driver.Result, error) {
-	params, err := driverArgsToMap(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.ExecNeo(params)
-}
-
-// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/driver.
+// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/internalDriver.
 func (s *boltStmt) ExecNeo(params QueryParams) (Result, error) {
 	if s.closed {
 		return nil, errors.New("Neo4j Bolt statement already closed")
@@ -169,17 +157,7 @@ func (s *boltStmt) ExecPipeline(params ...QueryParams) ([]Result, error) {
 	return results, nil
 }
 
-// Query executes a query that returns data. See sql/driver.Stmt.
-// You must bolt encode a map to pass as []bytes for the driver value
-func (s *boltStmt) Query(args []driver.Value) (driver.Rows, error) {
-	params, err := driverArgsToMap(args)
-	if err != nil {
-		return nil, err
-	}
-	return s.queryNeo(params)
-}
-
-// QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/driver.
+// QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/internalDriver.
 func (s *boltStmt) QueryNeo(params QueryParams) (Rows, error) {
 	return s.queryNeo(params)
 }

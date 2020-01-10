@@ -3,44 +3,45 @@ package goBolt
 import (
 	"fmt"
 	"github.com/mindstand/go-bolt/errors"
+	"math"
 	"time"
 )
 
 type IClient interface {
-	// opens a new driver to neo4j
+	// opens a new internalDriver to neo4j
 	NewDriver() (IDriver, error)
 
-	// opens a driver pool to neo4j
+	// opens a internalDriver pool to neo4j
 	NewDriverPool(size int) (IDriverPool, error)
 
-	// opens a v4 driver
+	// opens a v4 internalDriver
 	NewDriverV4() (IDriverV4, error)
 
-	// opens a v4 driver pool
+	// opens a v4 internalDriver pool
 	NewDriverPoolV4(size int) (IDriverPoolV4, error)
 }
 
 type Client struct {
 	// config stuff
-	connStr          string
-	host             string
-	port             int
-	routing          bool
-	pooled           bool
-	maxConnections   int
-	negotiateVersion bool
-	user             string
-	password         string
-	serverVersion    []byte
-	timeout          time.Duration
-	chunkSize        uint16
-	useTLS           bool
-	certFile         string
-	caCertFile       string
-	keyFile          string
-	tlsNoVerify      bool
-	readOnly         bool
-	supportsV4 bool
+	connStr             string
+	host                string
+	port                int
+	routing             bool
+	pooled              bool
+	maxConnections      int
+	negotiateVersion    bool
+	user                string
+	password            string
+	serverVersion       []byte
+	timeout             time.Duration
+	chunkSize           uint16
+	useTLS              bool
+	certFile            string
+	caCertFile          string
+	keyFile             string
+	tlsNoVerify         bool
+	readOnly            bool
+	supportsV4          bool
 	createDbIfNotExists bool
 }
 
@@ -60,6 +61,23 @@ func NewClient(opts ...Opt) (IClient, error) {
 		if err != nil {
 			return nil, errors.Wrap(errors.ErrConfiguration, err.Error())
 		}
+	}
+
+	// timeout not set
+	if client.timeout == 0 {
+		client.timeout = time.Second * time.Duration(60)
+	}
+
+	// check version set correctly
+	if len(client.serverVersion) == 0 {
+		// set the server version, default to 3
+		client.serverVersion = make([]byte, 4)
+	}
+
+	// check chunk size
+	if client.chunkSize == 0 {
+		// set default chunk size
+		client.chunkSize = math.MaxUint16
 	}
 
 	// figure out the connection string
@@ -105,13 +123,13 @@ func NewClient(opts ...Opt) (IClient, error) {
 }
 
 func (c *Client) NewDriver() (IDriver, error) {
-	driver := &driver{
+	driver := &internalDriver{
 		createIfNotExists: c.createDbIfNotExists,
 		connectionFactory: &boltConnectionFactory{
-			timeout: c.timeout,
-			chunkSize: c.chunkSize,
+			timeout:       c.timeout,
+			chunkSize:     c.chunkSize,
 			serverVersion: c.serverVersion,
-			connStr: c.connStr,
+			connStr:       c.connStr,
 		},
 	}
 
@@ -131,16 +149,16 @@ func (c *Client) NewDriverPool(size int) (IDriverPool, error) {
 
 func (c *Client) NewDriverV4() (IDriverV4, error) {
 	if !c.supportsV4 {
-		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 driver when actual version is [%s]", string(c.serverVersion))
+		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 internalDriver when actual version is [%s]", string(c.serverVersion))
 	}
 
-	driver := &driver{
+	driver := &internalDriver{
 		createIfNotExists: c.createDbIfNotExists,
 		connectionFactory: &boltConnectionFactory{
-			timeout: c.timeout,
-			chunkSize: c.chunkSize,
+			timeout:       c.timeout,
+			chunkSize:     c.chunkSize,
 			serverVersion: c.serverVersion,
-			connStr: c.connStr,
+			connStr:       c.connStr,
 		},
 	}
 
@@ -151,11 +169,15 @@ func (c *Client) NewDriverV4() (IDriverV4, error) {
 
 func (c *Client) NewDriverPoolV4(size int) (IDriverPoolV4, error) {
 	if !c.supportsV4 {
-		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 driver when actual version is [%s]", string(c.serverVersion))
+		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 internalDriver when actual version is [%s]", string(c.serverVersion))
 	}
-	panic("implement me")
+
+	driverPool, err := newDriverPool(c.connStr, size)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DriverPoolV4{
+		internalPool: driverPool,
+	}, nil
 }
-
-
-
-
