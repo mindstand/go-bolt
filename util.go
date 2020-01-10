@@ -14,18 +14,18 @@ import (
 // sprintByteHex returns a formatted string of the byte array in hexadecimal
 // with a nicely formatted human-readable output
 func sprintByteHex(b []byte) string {
-	output := "\t"
+	output := ""
 	for i, b := range b {
 		output += fmt.Sprintf("%x", b)
 		if (i+1)%16 == 0 {
-			output += "\n\n\t"
+			output += "\n\n"
 		} else if (i+1)%4 == 0 {
 			output += "  "
 		} else {
 			output += " "
 		}
 	}
-	output += "\n"
+	output += fmt.Sprintf("\n%x\n%s\n", b, string(b))
 
 	return output
 }

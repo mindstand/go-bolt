@@ -26,6 +26,8 @@ func NewInitMessage(clientName string, user string, password string) InitMessage
 		}
 	}
 
+	authToken["user_agent"] = clientName
+
 	return InitMessage{
 		clientName: clientName,
 		authToken:  authToken,
@@ -39,5 +41,5 @@ func (i InitMessage) Signature() int {
 
 // AllFields gets the fields to encode for the struct
 func (i InitMessage) AllFields() []interface{} {
-	return []interface{}{i.clientName, i.authToken}
+	return []interface{}{/*i.clientName, */i.authToken}
 }

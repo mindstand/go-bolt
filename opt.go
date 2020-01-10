@@ -2,6 +2,7 @@ package goBolt
 
 import (
 	"github.com/mindstand/go-bolt/errors"
+	"strings"
 	"time"
 )
 
@@ -146,7 +147,12 @@ func WithVersion(version string) Opt {
 			return errors.Wrap(errors.ErrConfiguration, "can not set client version and negotiate version")
 		}
 
-		client.serverVersion = []byte(version)
+		if strings.Contains(version, "4") {
+			client.serverVersion = make([]byte, 4)
+			client.supportsV4 = true
+		} else {
+			client.serverVersion = make([]byte, 4)
+		}
 
 		return nil
 	}
