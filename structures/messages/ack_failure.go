@@ -2,6 +2,8 @@ package messages
 
 const (
 	// AckFailureMessageSignature is the signature byte for the ACK_FAILURE message
+	// ACK_FAILURE
+	// binary [0000 1110]
 	AckFailureMessageSignature = 0x0E
 )
 

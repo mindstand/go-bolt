@@ -2,6 +2,8 @@ package messages
 
 const (
 	// ResetMessageSignature is the signature byte for the RESET message
+	// RESET
+	// binary [0000 1111]
 	ResetMessageSignature = 0x0F
 )
 

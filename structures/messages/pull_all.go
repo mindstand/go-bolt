@@ -2,6 +2,8 @@ package messages
 
 const (
 	// PullAllMessageSignature is the signature byte for the PULL_ALL message
+	// PULL_ALL
+	// binary [0011 1111]
 	PullAllMessageSignature = 0x3F
 )
 

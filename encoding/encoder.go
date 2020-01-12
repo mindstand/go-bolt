@@ -105,6 +105,9 @@ func Marshal(v interface{}) ([]byte, error) {
 
 // write writes to the writer.  Buffers the writes using chunkSize.
 func (e Encoder) Write(p []byte) (n int, err error) {
+	//log.Trace("in encode write")
+	//log.Trace(fmt.Sprintf("len writing is %v", len(p)))
+	//log.Trace(fmt.Sprintf("%x", p))
 
 	n, err = e.buf.Write(p)
 	if err != nil {
@@ -133,6 +136,9 @@ func (e Encoder) Write(p []byte) (n int, err error) {
 func (e Encoder) flush() error {
 	length := e.buf.Len()
 	if length > 0 {
+		if length == 23 {
+			length = 24
+		}
 		if err := binary.Write(e.w, binary.BigEndian, uint16(length)); err != nil {
 			return errors.Wrap(err, "An error occured writing length bytes during flush")
 		}
@@ -291,7 +297,7 @@ func (e Encoder) encodeInt(val int64) error {
 		return errors.New("Int too long to write: %d", val)
 	}
 	if err != nil {
-		return errors.Wrap(err, "An error occured writing an int to bolt")
+		return errors.Wrap(err, "An error occurred writing an int to bolt")
 	}
 	return err
 }
@@ -316,7 +322,7 @@ func (e Encoder) encodeString(val string) error {
 	length := len(bytes)
 	switch {
 	case length <= 15:
-		if _, err = e.Write([]byte{byte(TinyStringMarker + length)}); err != nil {
+		if _, err = e.Write([]byte{byte(TinyStringMarker | length)}); err != nil {
 			return err
 		}
 		_, err = e.Write(bytes)
@@ -354,7 +360,7 @@ func (e Encoder) encodeSlice(val []interface{}) error {
 	length := len(val)
 	switch {
 	case length <= 15:
-		if _, err := e.Write([]byte{byte(TinySliceMarker + length)}); err != nil {
+		if _, err := e.Write([]byte{byte(TinySliceMarker | length)}); err != nil {
 			return err
 		}
 	case length > 15 && length <= math.MaxUint8:
@@ -396,7 +402,7 @@ func (e Encoder) encodeMap(val map[string]interface{}) error {
 	length := len(val)
 	switch {
 	case length <= 15:
-		if _, err := e.Write([]byte{byte(TinyMapMarker + length)}); err != nil {
+		if _, err := e.Write([]byte{byte(TinyMapMarker | length)}); err != nil {
 			return err
 		}
 	case length > 15 && length <= math.MaxUint8:
@@ -443,7 +449,7 @@ func (e Encoder) encodeStructure(val structures.Structure) error {
 	length := len(fields)
 	switch {
 	case length <= 15:
-		if _, err := e.Write([]byte{byte(TinyStructMarker + length)}); err != nil {
+		if _, err := e.Write([]byte{byte(TinyStructMarker | length)}); err != nil {
 			return err
 		}
 	case length > 15 && length <= math.MaxUint8:

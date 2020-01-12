@@ -2,6 +2,8 @@ package messages
 
 const (
 	// DiscardAllMessageSignature is the signature byte for the DISCARD_ALL message
+	// DISCARD_ALL
+	// binary [0010 1111]
 	DiscardAllMessageSignature = 0x2F
 )
 

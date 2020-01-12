@@ -2,6 +2,8 @@ package messages
 
 const (
 	// RunMessageSignature is the signature byte for the RUN message
+	// RUN <query> <params>
+	// binary [0001 0000]
 	RunMessageSignature = 0x10
 )
 

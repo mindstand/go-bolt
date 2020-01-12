@@ -2,35 +2,35 @@ package messages
 
 const (
 	// InitMessageSignature is the signature byte for the INIT message
+	// INIT <user_agent> <authentication_token>
+	// binary [0000 0001]
 	InitMessageSignature = 0x01
 )
 
 // InitMessage Represents an INIT message
 type InitMessage struct {
-	clientName string
-	authToken  map[string]interface{}
+	data map[string]interface{}
 }
 
 // NewInitMessage Gets a new InitMessage struct
 func NewInitMessage(clientName string, user string, password string) InitMessage {
-	var authToken map[string]interface{}
+	var data map[string]interface{}
 	if user == "" {
-		authToken = map[string]interface{}{
+		data = map[string]interface{}{
 			"scheme": "none",
 		}
 	} else {
-		authToken = map[string]interface{}{
+		data = map[string]interface{}{
 			"scheme":      "basic",
 			"principal":   user,
 			"credentials": password,
 		}
 	}
 
-	authToken["user_agent"] = clientName
+	data["user_agent"] = clientName
 
 	return InitMessage{
-		clientName: clientName,
-		authToken:  authToken,
+		data: data,
 	}
 }
 
@@ -41,5 +41,5 @@ func (i InitMessage) Signature() int {
 
 // AllFields gets the fields to encode for the struct
 func (i InitMessage) AllFields() []interface{} {
-	return []interface{}{/*i.clientName, */i.authToken}
+	return []interface{}{i.data}
 }
