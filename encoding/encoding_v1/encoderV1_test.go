@@ -17,7 +17,7 @@ const (
 	maxKeySize = 10
 )
 
-func createNewTestEncoder() (Encoder, io.Reader) {
+func createNewTestEncoder() (EncoderV1, io.Reader) {
 	buf := bytes.NewBuffer([]byte{})
 	return NewEncoder(buf, maxBufSize), buf
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/mindstand/go-bolt/encoding"
+	"github.com/mindstand/go-bolt/encoding/encode_consts"
 	"io"
 
 	"github.com/mindstand/go-bolt/errors"
@@ -11,7 +12,7 @@ import (
 	"github.com/mindstand/go-bolt/structures/messages"
 )
 
-// Decoder decodes a message from the bolt protocol stream
+// DecoderV1 decodes a message from the bolt protocol stream
 // Attempts to support all builtin golang types, when it can be confidently
 // mapped to a data type from: http://alpha.neohq.net/docs/server-manual/bolt-serialization.html#bolt-packstream-structures
 // (version v3.1.0-M02 at the time of writing this.
@@ -19,14 +20,14 @@ import (
 // Maps and Slices are a special case, where only
 // map[string]interface{} and []interface{} are supported.
 // The interface for maps and slices may be more permissive in the future.
-type Decoder struct {
+type DecoderV1 struct {
 	r   io.Reader
 	buf *bytes.Buffer
 }
 
-// NewDecoder Creates a new Decoder object
-func NewDecoder(r io.Reader) Decoder {
-	return Decoder{
+// NewDecoder Creates a new DecoderV1 object
+func NewDecoder(r io.Reader) DecoderV1 {
+	return DecoderV1{
 		r:   r,
 		buf: &bytes.Buffer{},
 	}
@@ -38,7 +39,7 @@ func Unmarshal(b []byte) (interface{}, error) {
 }
 
 // Read out the object bytes to decode
-func (d Decoder) read() (*bytes.Buffer, error) {
+func (d DecoderV1) read() (*bytes.Buffer, error) {
 	output := &bytes.Buffer{}
 	for {
 		lengthBytes := make([]byte, 2)
@@ -67,7 +68,7 @@ func (d Decoder) read() (*bytes.Buffer, error) {
 	}
 }
 
-func (d Decoder) readData(messageLen uint16) ([]byte, error) {
+func (d DecoderV1) readData(messageLen uint16) ([]byte, error) {
 	output := make([]byte, messageLen)
 	var totalRead uint16
 	for totalRead < messageLen {
@@ -90,7 +91,7 @@ func (d Decoder) readData(messageLen uint16) ([]byte, error) {
 }
 
 // Decode decodes the stream to an object
-func (d Decoder) Decode() (interface{}, error) {
+func (d DecoderV1) Decode() (interface{}, error) {
 	data, err := d.read()
 	if err != nil {
 		return nil, err
@@ -99,7 +100,7 @@ func (d Decoder) Decode() (interface{}, error) {
 	return d.decode(data)
 }
 
-func (d Decoder) decode(buffer *bytes.Buffer) (interface{}, error) {
+func (d DecoderV1) decode(buffer *bytes.Buffer) (interface{}, error) {
 
 	marker, err := buffer.ReadByte()
 	if err != nil {
@@ -117,61 +118,61 @@ func (d Decoder) decode(buffer *bytes.Buffer) (interface{}, error) {
 	switch {
 
 	// NIL
-	case marker == NilMarker:
+	case marker == encode_consts.NilMarker:
 		return nil, nil
 
 	// BOOL
-	case marker == TrueMarker:
+	case marker == encode_consts.TrueMarker:
 		return true, nil
-	case marker == FalseMarker:
+	case marker == encode_consts.FalseMarker:
 		return false, nil
 
 	// INT
 	case markerInt >= -16 && markerInt <= 127:
 		return int64(int8(marker)), nil
-	case marker == Int8Marker:
+	case marker == encode_consts.Int8Marker:
 		var out int8
 		err := binary.Read(buffer, binary.BigEndian, &out)
 		return int64(out), err
-	case marker == Int16Marker:
+	case marker == encode_consts.Int16Marker:
 		var out int16
 		err := binary.Read(buffer, binary.BigEndian, &out)
 		return int64(out), err
-	case marker == Int32Marker:
+	case marker == encode_consts.Int32Marker:
 		var out int32
 		err := binary.Read(buffer, binary.BigEndian, &out)
 		return int64(out), err
-	case marker == Int64Marker:
+	case marker == encode_consts.Int64Marker:
 		var out int64
 		err := binary.Read(buffer, binary.BigEndian, &out)
 		return int64(out), err
 
 	// FLOAT
-	case marker == FloatMarker:
+	case marker == encode_consts.FloatMarker:
 		var out float64
 		err := binary.Read(buffer, binary.BigEndian, &out)
 		return out, err
 
 	// STRING
-	case marker >= TinyStringMarker && marker <= TinyStringMarker+0x0F:
-		size := int(marker) - int(TinyStringMarker)
+	case marker >= encode_consts.TinyStringMarker && marker <= encode_consts.TinyStringMarker+0x0F:
+		size := int(marker) - int(encode_consts.TinyStringMarker)
 		if size == 0 {
 			return "", nil
 		}
 		return string(buffer.Next(size)), nil
-	case marker == String8Marker:
+	case marker == encode_consts.String8Marker:
 		var size int8
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading string size")
 		}
 		return string(buffer.Next(int(size))), nil
-	case marker == String16Marker:
+	case marker == encode_consts.String16Marker:
 		var size int16
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading string size")
 		}
 		return string(buffer.Next(int(size))), nil
-	case marker == String32Marker:
+	case marker == encode_consts.String32Marker:
 		var size int32
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading string size")
@@ -179,22 +180,22 @@ func (d Decoder) decode(buffer *bytes.Buffer) (interface{}, error) {
 		return string(buffer.Next(int(size))), nil
 
 	// SLICE
-	case marker >= TinySliceMarker && marker <= TinySliceMarker+0x0F:
-		size := int(marker) - int(TinySliceMarker)
+	case marker >= encode_consts.TinySliceMarker && marker <= encode_consts.TinySliceMarker+0x0F:
+		size := int(marker) - int(encode_consts.TinySliceMarker)
 		return d.decodeSlice(buffer, size)
-	case marker == Slice8Marker:
+	case marker == encode_consts.Slice8Marker:
 		var size int8
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading slice size")
 		}
 		return d.decodeSlice(buffer, int(size))
-	case marker == Slice16Marker:
+	case marker == encode_consts.Slice16Marker:
 		var size int16
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading slice size")
 		}
 		return d.decodeSlice(buffer, int(size))
-	case marker == Slice32Marker:
+	case marker == encode_consts.Slice32Marker:
 		var size int32
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading slice size")
@@ -202,22 +203,22 @@ func (d Decoder) decode(buffer *bytes.Buffer) (interface{}, error) {
 		return d.decodeSlice(buffer, int(size))
 
 	// MAP
-	case marker >= TinyMapMarker && marker <= TinyMapMarker+0x0F:
-		size := int(marker) - int(TinyMapMarker)
+	case marker >= encode_consts.TinyMapMarker && marker <= encode_consts.TinyMapMarker+0x0F:
+		size := int(marker) - int(encode_consts.TinyMapMarker)
 		return d.decodeMap(buffer, size)
-	case marker == Map8Marker:
+	case marker == encode_consts.Map8Marker:
 		var size int8
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading map size")
 		}
 		return d.decodeMap(buffer, int(size))
-	case marker == Map16Marker:
+	case marker == encode_consts.Map16Marker:
 		var size int16
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading map size")
 		}
 		return d.decodeMap(buffer, int(size))
-	case marker == Map32Marker:
+	case marker == encode_consts.Map32Marker:
 		var size int32
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading map size")
@@ -225,16 +226,16 @@ func (d Decoder) decode(buffer *bytes.Buffer) (interface{}, error) {
 		return d.decodeMap(buffer, int(size))
 
 	// STRUCTURES
-	case marker >= TinyStructMarker && marker <= TinyStructMarker+0x0F:
-		size := int(marker) - int(TinyStructMarker)
+	case marker >= encode_consts.TinyStructMarker && marker <= encode_consts.TinyStructMarker+0x0F:
+		size := int(marker) - int(encode_consts.TinyStructMarker)
 		return d.decodeStruct(buffer, size)
-	case marker == Struct8Marker:
+	case marker == encode_consts.Struct8Marker:
 		var size int8
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading struct size")
 		}
 		return d.decodeStruct(buffer, int(size))
-	case marker == Struct16Marker:
+	case marker == encode_consts.Struct16Marker:
 		var size int16
 		if err := binary.Read(buffer, binary.BigEndian, &size); err != nil {
 			return nil, errors.Wrap(err, "An error occurred reading struct size")
@@ -247,7 +248,7 @@ func (d Decoder) decode(buffer *bytes.Buffer) (interface{}, error) {
 
 }
 
-func (d Decoder) decodeSlice(buffer *bytes.Buffer, size int) ([]interface{}, error) {
+func (d DecoderV1) decodeSlice(buffer *bytes.Buffer, size int) ([]interface{}, error) {
 	slice := make([]interface{}, size)
 	for i := 0; i < size; i++ {
 		item, err := d.decode(buffer)
@@ -260,7 +261,7 @@ func (d Decoder) decodeSlice(buffer *bytes.Buffer, size int) ([]interface{}, err
 	return slice, nil
 }
 
-func (d Decoder) decodeMap(buffer *bytes.Buffer, size int) (map[string]interface{}, error) {
+func (d DecoderV1) decodeMap(buffer *bytes.Buffer, size int) (map[string]interface{}, error) {
 	mapp := make(map[string]interface{}, size)
 	for i := 0; i < size; i++ {
 		keyInt, err := d.decode(buffer)
@@ -282,7 +283,7 @@ func (d Decoder) decodeMap(buffer *bytes.Buffer, size int) (map[string]interface
 	return mapp, nil
 }
 
-func (d Decoder) decodeStruct(buffer *bytes.Buffer, size int) (interface{}, error) {
+func (d DecoderV1) decodeStruct(buffer *bytes.Buffer, size int) (interface{}, error) {
 
 	signature, err := buffer.ReadByte()
 	if err != nil {
@@ -319,7 +320,7 @@ func (d Decoder) decodeStruct(buffer *bytes.Buffer, size int) (interface{}, erro
 	}
 }
 
-func (d Decoder) decodeNode(buffer *bytes.Buffer) (graph.Node, error) {
+func (d DecoderV1) decodeNode(buffer *bytes.Buffer) (graph.Node, error) {
 	node := graph.Node{}
 
 	nodeIdentityInt, err := d.decode(buffer)
@@ -354,7 +355,7 @@ func (d Decoder) decodeNode(buffer *bytes.Buffer) (graph.Node, error) {
 
 }
 
-func (d Decoder) decodeRelationship(buffer *bytes.Buffer) (graph.Relationship, error) {
+func (d DecoderV1) decodeRelationship(buffer *bytes.Buffer) (graph.Relationship, error) {
 	rel := graph.Relationship{}
 
 	relIdentityInt, err := d.decode(buffer)
@@ -397,7 +398,7 @@ func (d Decoder) decodeRelationship(buffer *bytes.Buffer) (graph.Relationship, e
 	return rel, nil
 }
 
-func (d Decoder) decodePath(buffer *bytes.Buffer) (graph.Path, error) {
+func (d DecoderV1) decodePath(buffer *bytes.Buffer) (graph.Path, error) {
 	path := graph.Path{}
 
 	nodesInt, err := d.decode(buffer)
@@ -439,7 +440,7 @@ func (d Decoder) decodePath(buffer *bytes.Buffer) (graph.Path, error) {
 	return path, err
 }
 
-func (d Decoder) decodeUnboundRelationship(buffer *bytes.Buffer) (graph.UnboundRelationship, error) {
+func (d DecoderV1) decodeUnboundRelationship(buffer *bytes.Buffer) (graph.UnboundRelationship, error) {
 	rel := graph.UnboundRelationship{}
 
 	relIdentityInt, err := d.decode(buffer)
@@ -470,7 +471,7 @@ func (d Decoder) decodeUnboundRelationship(buffer *bytes.Buffer) (graph.UnboundR
 	return rel, nil
 }
 
-func (d Decoder) decodeRecordMessage(buffer *bytes.Buffer) (messages.RecordMessage, error) {
+func (d DecoderV1) decodeRecordMessage(buffer *bytes.Buffer) (messages.RecordMessage, error) {
 	fieldsInt, err := d.decode(buffer)
 	if err != nil {
 		return messages.RecordMessage{}, err
@@ -483,7 +484,7 @@ func (d Decoder) decodeRecordMessage(buffer *bytes.Buffer) (messages.RecordMessa
 	return messages.NewRecordMessage(fields), nil
 }
 
-func (d Decoder) decodeFailureMessage(buffer *bytes.Buffer) (messages.FailureMessage, error) {
+func (d DecoderV1) decodeFailureMessage(buffer *bytes.Buffer) (messages.FailureMessage, error) {
 	metadataInt, err := d.decode(buffer)
 	if err != nil {
 		return messages.FailureMessage{}, err
@@ -496,11 +497,11 @@ func (d Decoder) decodeFailureMessage(buffer *bytes.Buffer) (messages.FailureMes
 	return messages.NewFailureMessage(metadata), nil
 }
 
-func (d Decoder) decodeIgnoredMessage(buffer *bytes.Buffer) (messages.IgnoredMessage, error) {
+func (d DecoderV1) decodeIgnoredMessage(buffer *bytes.Buffer) (messages.IgnoredMessage, error) {
 	return messages.NewIgnoredMessage(), nil
 }
 
-func (d Decoder) decodeSuccessMessage(buffer *bytes.Buffer) (messages.SuccessMessage, error) {
+func (d DecoderV1) decodeSuccessMessage(buffer *bytes.Buffer) (messages.SuccessMessage, error) {
 	metadataInt, err := d.decode(buffer)
 	if err != nil {
 		return messages.SuccessMessage{}, err
@@ -513,18 +514,18 @@ func (d Decoder) decodeSuccessMessage(buffer *bytes.Buffer) (messages.SuccessMes
 	return messages.NewSuccessMessage(metadata), nil
 }
 
-func (d Decoder) decodeAckFailureMessage(buffer *bytes.Buffer) (messages.AckFailureMessage, error) {
+func (d DecoderV1) decodeAckFailureMessage(buffer *bytes.Buffer) (messages.AckFailureMessage, error) {
 	return messages.NewAckFailureMessage(), nil
 }
 
-func (d Decoder) decodeDiscardAllMessage(buffer *bytes.Buffer) (messages.DiscardAllMessage, error) {
+func (d DecoderV1) decodeDiscardAllMessage(buffer *bytes.Buffer) (messages.DiscardAllMessage, error) {
 	return messages.NewDiscardAllMessage(), nil
 }
 
-func (d Decoder) decodePullAllMessage(buffer *bytes.Buffer) (messages.PullAllMessage, error) {
+func (d DecoderV1) decodePullAllMessage(buffer *bytes.Buffer) (messages.PullAllMessage, error) {
 	return messages.NewPullAllMessage(), nil
 }
 
-func (d Decoder) decodeResetMessage(buffer *bytes.Buffer) (messages.ResetMessage, error) {
+func (d DecoderV1) decodeResetMessage(buffer *bytes.Buffer) (messages.ResetMessage, error) {
 	return messages.NewResetMessage(), nil
 }

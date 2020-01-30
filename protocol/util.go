@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mindstand/go-bolt/protocol/protocol_v1"
+	"github.com/mindstand/go-bolt/protocol/protocol_v2"
 )
 
 func GetProtocol(version []byte) (IBoltProtocol, int, error) {
@@ -15,6 +16,8 @@ func GetProtocol(version []byte) (IBoltProtocol, int, error) {
 	// todo write this part out for all protocols
 	if bytes.Equal(version, protocol_v1.ProtocolVersionBytes) {
 		return &protocol_v1.BoltProtocolV1{}, protocol_v1.ProtocolVersion, nil
+	} else if bytes.Equal(version, protocol_v2.ProtocolVersionBytes) {
+		return &protocol_v2.BoltProtocolV2{}, protocol_v2.ProtocolVersion, nil
 	} else {
 		return nil, -1, fmt.Errorf("protocol with bytes [%v] not supported", version)
 	}
