@@ -1,6 +1,7 @@
 package goBolt
 
 import (
+	"github.com/mindstand/go-bolt/connection"
 	ll "github.com/mindstand/go-bolt/log"
 	"log"
 	"testing"
@@ -20,7 +21,7 @@ func TestClient(t *testing.T) {
 		t.FailNow()
 	}
 
-	conn, err := driver.Open(ReadWriteMode)
+	conn, err := driver.Open(connection.ReadWriteMode)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -55,7 +56,7 @@ func TestClientV4(t *testing.T) {
 		t.FailNow()
 	}
 
-	conn, err := driver.Open("system", ReadWriteMode)
+	conn, err := driver.Open("system", connection.ReadWriteMode)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()

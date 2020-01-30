@@ -1,6 +1,7 @@
 package goBolt
 
 import (
+	"github.com/mindstand/go-bolt/connection"
 	"net"
 	"time"
 )
@@ -12,12 +13,12 @@ type IBoltConnectionFactory interface {
 // bolt+routing will not work for non pooled connections
 type IDriver interface {
 	// OpenNeo opens a Neo-specific connection.
-	Open(mode DriverMode) (IConnection, error)
+	Open(mode connection.DriverMode) (IConnection, error)
 }
 
 type IDriverPool interface {
 	// Open opens a Neo-specific connection.
-	Open(mode DriverMode) (IConnection, error)
+	Open(mode connection.DriverMode) (IConnection, error)
 	Reclaim(IConnection) error
 	Close() error
 }
@@ -25,12 +26,12 @@ type IDriverPool interface {
 // bolt+routing will not work for non pooled connections
 type IDriverV4 interface {
 	// OpenNeo opens a Neo-specific connection.
-	Open(db string, mode DriverMode) (IConnection, error)
+	Open(db string, mode connection.DriverMode) (IConnection, error)
 }
 
 type IDriverPoolV4 interface {
 	// allows user of new neo4j multiple db feature
-	Open(db string, mode DriverMode) (IConnection, error)
+	Open(db string, mode connection.DriverMode) (IConnection, error)
 	Reclaim(IConnection) error
 	Close() error
 }
@@ -47,21 +48,12 @@ type IDriverPoolV4 interface {
 type IConnection interface {
 	// PrepareNeo prepares a neo4j specific statement
 	PrepareNeo(query string) (Stmt, error)
-	// PreparePipeline prepares a neo4j specific pipeline statement
-	// Useful for running multiple queries at the same time
-	PreparePipeline(query ...string) (PipelineStmt, error)
 	// QueryNeo queries using the neo4j-specific interface
-	QueryNeo(query string, params QueryParams) (Rows, error)
+	QueryNeo(query string, params connection.QueryParams) (Rows, error)
 	// QueryNeoAll queries using the neo4j-specific interface and returns all row data and output metadata
-	QueryNeoAll(query string, params QueryParams) (NeoRows, map[string]interface{}, map[string]interface{}, error)
-	// QueryPipeline queries using the neo4j-specific interface
-	// pipelining multiple statements
-	QueryPipeline(query []string, params ...QueryParams) (PipelineRows, error)
+	QueryNeoAll(query string, params connection.QueryParams) (connection.NeoRows, map[string]interface{}, map[string]interface{}, error)
 	// ExecNeo executes a query using the neo4j-specific interface
-	ExecNeo(query string, params QueryParams) (Result, error)
-	// ExecPipeline executes a query using the neo4j-specific interface
-	// pipelining multiple statements
-	ExecPipeline(query []string, params ...QueryParams) ([]Result, error)
+	ExecNeo(query string, params connection.QueryParams) (Result, error)
 	// Close closes the connection
 	Close() error
 	// Begin starts a new transaction

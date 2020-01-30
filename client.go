@@ -2,6 +2,7 @@ package goBolt
 
 import (
 	"fmt"
+	"github.com/mindstand/go-bolt/connection"
 	"github.com/mindstand/go-bolt/errors"
 	"math"
 	"time"
@@ -125,7 +126,7 @@ func NewClient(opts ...Opt) (IClient, error) {
 func (c *Client) NewDriver() (IDriver, error) {
 	driver := &internalDriver{
 		createIfNotExists: c.createDbIfNotExists,
-		connectionFactory: &boltConnectionFactory{
+		connectionFactory: &connection.boltConnectionFactory{
 			timeout:       c.timeout,
 			chunkSize:     c.chunkSize,
 			serverVersion: c.serverVersion,
@@ -154,7 +155,7 @@ func (c *Client) NewDriverV4() (IDriverV4, error) {
 
 	driver := &internalDriver{
 		createIfNotExists: c.createDbIfNotExists,
-		connectionFactory: &boltConnectionFactory{
+		connectionFactory: &connection.boltConnectionFactory{
 			timeout:       c.timeout,
 			chunkSize:     c.chunkSize,
 			serverVersion: c.serverVersion,

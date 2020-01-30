@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/encoding/encoding_v1"
 	"github.com/mindstand/go-bolt/log"
 	"math/rand"
 	"time"
-
-	"github.com/mindstand/go-bolt/encoding"
 )
 
 // sprintByteHex returns a formatted string of the byte array in hexadecimal
@@ -40,7 +40,7 @@ func driverArgsToMap(args []Value) (map[string]interface{}, error) {
 			return nil, errors.New("You must pass only a gob encoded map to the Exec/Query args")
 		}
 
-		m, err := encoding.Unmarshal(argBytes)
+		m, err := encoding_v1.Unmarshal(argBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +94,7 @@ func getPoolFunc(connStrs []string, readonly bool) func(ctx context.Context) (in
 			i = rand.Intn(len(connStrs))
 		}
 
-		conn, err := createConnection(connStrs[i])
+		conn, err := connection.createConnection(connStrs[i])
 		if err != nil {
 			return nil, err
 		}

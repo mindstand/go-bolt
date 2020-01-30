@@ -1,8 +1,9 @@
-package encoding
+package encoding_v1
 
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/mindstand/go-bolt/encoding"
 	"io"
 
 	"github.com/mindstand/go-bolt/errors"
@@ -335,7 +336,7 @@ func (d Decoder) decodeNode(buffer *bytes.Buffer) (graph.Node, error) {
 	if !ok {
 		return node, errors.New("Expected: Labels []string, but got %T %+v", labelInt, labelInt)
 	}
-	node.Labels, err = sliceInterfaceToString(labelIntSlice)
+	node.Labels, err = encoding.SliceInterfaceToString(labelIntSlice)
 	if err != nil {
 		return node, err
 	}
@@ -407,7 +408,7 @@ func (d Decoder) decodePath(buffer *bytes.Buffer) (graph.Path, error) {
 	if !ok {
 		return path, errors.New("Expected: Nodes []Node, but got %T %+v", nodesInt, nodesInt)
 	}
-	path.Nodes, err = sliceInterfaceToNode(nodesIntSlice)
+	path.Nodes, err = encoding.SliceInterfaceToNode(nodesIntSlice)
 	if err != nil {
 		return path, err
 	}
@@ -420,7 +421,7 @@ func (d Decoder) decodePath(buffer *bytes.Buffer) (graph.Path, error) {
 	if !ok {
 		return path, errors.New("Expected: Relationships []Relationship, but got %T %+v", relsInt, relsInt)
 	}
-	path.Relationships, err = sliceInterfaceToUnboundRelationship(relsIntSlice)
+	path.Relationships, err = encoding.SliceInterfaceToUnboundRelationship(relsIntSlice)
 	if err != nil {
 		return path, err
 	}
@@ -433,7 +434,7 @@ func (d Decoder) decodePath(buffer *bytes.Buffer) (graph.Path, error) {
 	if !ok {
 		return path, errors.New("Expected: Sequence []int, but got %T %+v", seqInt, seqInt)
 	}
-	path.Sequence, err = sliceInterfaceToInt(seqIntSlice)
+	path.Sequence, err = encoding.SliceInterfaceToInt(seqIntSlice)
 
 	return path, err
 }

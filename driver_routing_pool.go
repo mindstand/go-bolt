@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	pool "github.com/jolestar/go-commons-pool"
+	"github.com/mindstand/go-bolt/connection"
 	"github.com/mindstand/go-bolt/errors"
 	"net/url"
 	"strings"
@@ -95,7 +96,7 @@ func (b *routingDriverPool) refreshConnectionPool() error {
 			return err
 		}
 
-		clusterInfoConn, err = clusterInfoDriver.Open("system", ReadWriteMode)
+		clusterInfoConn, err = clusterInfoDriver.Open("system", connection.ReadWriteMode)
 		if err != nil {
 			return err
 		}
@@ -105,7 +106,7 @@ func (b *routingDriverPool) refreshConnectionPool() error {
 			return err
 		}
 
-		clusterInfoConn, err = clusterInfoDriver.Open(ReadWriteMode)
+		clusterInfoConn, err = clusterInfoDriver.Open(connection.ReadWriteMode)
 		if err != nil {
 			return err
 		}
@@ -253,7 +254,7 @@ func (b *routingDriverPool) close() error {
 	return nil
 }
 
-func (b *routingDriverPool) open(db string, mode DriverMode) (IConnection, error) {
+func (b *routingDriverPool) open(db string, mode connection.DriverMode) (IConnection, error) {
 	// For each connection request we need to block in case the Close function is called. This gives us a guarantee
 	// when closing the pool no new connections are made.
 	b.refLock.Lock()
@@ -264,7 +265,7 @@ func (b *routingDriverPool) open(db string, mode DriverMode) (IConnection, error
 		var ok bool
 
 		switch mode {
-		case ReadOnlyMode:
+		case connection.ReadOnlyMode:
 			connObj, err := b.readPool.BorrowObject(ctx)
 			if err != nil {
 				return nil, err
@@ -275,7 +276,7 @@ func (b *routingDriverPool) open(db string, mode DriverMode) (IConnection, error
 				return nil, errors.New("unable to cast to *BoltConn")
 			}
 			break
-		case ReadWriteMode:
+		case connection.ReadWriteMode:
 			connObj, err := b.writePool.BorrowObject(ctx)
 			if err != nil {
 				return nil, err
@@ -364,7 +365,7 @@ type RoutingDriverPool struct {
 	internalPool *routingDriverPool
 }
 
-func (r *RoutingDriverPool) Open(mode DriverMode) (IConnection, error) {
+func (r *RoutingDriverPool) Open(mode connection.DriverMode) (IConnection, error) {
 	return r.internalPool.open("", mode)
 }
 
@@ -380,7 +381,7 @@ type RoutingDriverPoolV4 struct {
 	internalPool *routingDriverPool
 }
 
-func (r *RoutingDriverPoolV4) Open(db string, mode DriverMode) (IConnection, error) {
+func (r *RoutingDriverPoolV4) Open(db string, mode connection.DriverMode) (IConnection, error) {
 	return r.internalPool.open(db, mode)
 }
 

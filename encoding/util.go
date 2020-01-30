@@ -5,7 +5,7 @@ import (
 	"github.com/mindstand/go-bolt/structures/graph"
 )
 
-func sliceInterfaceToString(from []interface{}) ([]string, error) {
+func SliceInterfaceToString(from []interface{}) ([]string, error) {
 	to := make([]string, len(from))
 	for idx, item := range from {
 		toItem, ok := item.(string)
@@ -17,7 +17,7 @@ func sliceInterfaceToString(from []interface{}) ([]string, error) {
 	return to, nil
 }
 
-func sliceInterfaceToInt(from []interface{}) ([]int, error) {
+func SliceInterfaceToInt(from []interface{}) ([]int, error) {
 	to := make([]int, len(from))
 	for idx, item := range from {
 		to[idx] = int(item.(int64))
@@ -25,7 +25,7 @@ func sliceInterfaceToInt(from []interface{}) ([]int, error) {
 	return to, nil
 }
 
-func sliceInterfaceToNode(from []interface{}) ([]graph.Node, error) {
+func SliceInterfaceToNode(from []interface{}) ([]graph.Node, error) {
 	to := make([]graph.Node, len(from))
 	for idx, item := range from {
 		toItem, ok := item.(graph.Node)
@@ -37,7 +37,7 @@ func sliceInterfaceToNode(from []interface{}) ([]graph.Node, error) {
 	return to, nil
 }
 
-func sliceInterfaceToRelationship(from []interface{}) ([]graph.Relationship, error) {
+func SliceInterfaceToRelationship(from []interface{}) ([]graph.Relationship, error) {
 	to := make([]graph.Relationship, len(from))
 	for idx, item := range from {
 		toItem, ok := item.(graph.Relationship)
@@ -49,7 +49,7 @@ func sliceInterfaceToRelationship(from []interface{}) ([]graph.Relationship, err
 	return to, nil
 }
 
-func sliceInterfaceToUnboundRelationship(from []interface{}) ([]graph.UnboundRelationship, error) {
+func SliceInterfaceToUnboundRelationship(from []interface{}) ([]graph.UnboundRelationship, error) {
 	to := make([]graph.UnboundRelationship, len(from))
 	for idx, item := range from {
 		toItem, ok := item.(graph.UnboundRelationship)
