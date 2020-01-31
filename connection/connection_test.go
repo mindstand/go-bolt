@@ -1,6 +1,7 @@
 package connection
 
 import (
+	"fmt"
 	"github.com/mindstand/go-bolt/log"
 	"testing"
 )
@@ -28,7 +29,7 @@ func TestConnection(t *testing.T) {
 	}
 
 	for i := 0; i < 4; i++ {
-		t.Log("starting tx")
+		fmt.Println("starting tx")
 		tx, err := conn.Begin()
 		if err != nil {
 			t.Log(err)
@@ -43,7 +44,7 @@ func TestConnection(t *testing.T) {
 			t.FailNow()
 		}
 
-		t.Log(res.Metadata())
+		fmt.Println(res.Metadata())
 		t.Log("committing tx")
 
 		err = tx.Commit()

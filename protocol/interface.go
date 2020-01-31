@@ -31,6 +31,11 @@ type IBoltProtocol interface {
 	// creates run message
 	// newer versions of bolt protocol require additional information in run message for database specification, tx, and r/w modes
 	GetRunMessage(query string, params map[string]interface{}, dbName string, mode constants.AccessMode, autoCommit bool) structures.Structure
+	// creates pull all message
+	GetPullAllMessage() structures.Structure
+	// gets discard message
+	GetDiscardMessage(qid int64) structures.Structure
+	GetDiscardAllMessage() structures.Structure
 	// newer versions of bolt protocol allow for multi database support
 	SupportsMultiDatabase() bool
 

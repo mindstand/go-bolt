@@ -54,6 +54,7 @@ func (r *readWrite) Read(p []byte) (n int, err error) {
 
 type Connection struct {
 	boltProtocol protocol.IBoltProtocol
+	protocolVersion int
 
 	// connection information
 	user     string
@@ -254,6 +255,7 @@ func (c *Connection) initialize() error {
 
 	log.Infof("Using protocol version %v", version)
 
+	c.protocolVersion = version
 	c.boltProtocol = boltProtocol
 
 	return c.sendInit(c.boltProtocol.GetInitMessage(ClientID, messages.BuildAuthTokenBasic(c.user, c.password)))
@@ -291,7 +293,15 @@ func (c *Connection) SetTimeout(timeout time.Duration) {
 }
 
 func (c *Connection) Exec(query string, params QueryParams) (IResult, error) {
-	success, err := c.query(query, params, false)
+	return c.ExecWithDb(query, params, "")
+}
+
+func (c *Connection) ExecWithDb(query string, params QueryParams, db string) (IResult, error) {
+	if !c.boltProtocol.SupportsMultiDatabase() && db != ""{
+		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
+	}
+
+	success, err := c.runQuery(query, params, db,false)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +310,15 @@ func (c *Connection) Exec(query string, params QueryParams) (IResult, error) {
 }
 
 func (c *Connection) Query(query string, params QueryParams) (IRows, error) {
-	success, err := c.query(query, params, false)
+	return c.QueryWithDb(query, params, "")
+}
+
+func (c *Connection) QueryWithDb(query string, params QueryParams, db string) (IRows, error) {
+	if !c.boltProtocol.SupportsMultiDatabase() && db != ""{
+		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
+	}
+
+	success, err := c.runQuery(query, params, db,false)
 	if err != nil {
 		return nil, err
 	}
@@ -308,9 +326,9 @@ func (c *Connection) Query(query string, params QueryParams) (IRows, error) {
 	return newQueryRows(c, success.Metadata), nil
 }
 
-func (c *Connection) query(query string, params QueryParams, dbName string, inTx bool) (*messages.SuccessMessage, error) {
+func (c *Connection) runQuery(query string, params QueryParams, dbName string, inTx bool) (*messages.SuccessMessage, error) {
 	if c.openQuery {
-		return nil, errors.New("query already open")
+		return nil, errors.New("runQuery already open")
 	}
 
 	if c.closed {
@@ -322,7 +340,7 @@ func (c *Connection) query(query string, params QueryParams, dbName string, inTx
 		return nil, err
 	}
 
-	err = c.sendMessage(messages.NewPullAllMessage())
+	err = c.sendMessage(c.boltProtocol.GetPullAllMessage())
 	if err != nil {
 		return nil, err
 	}
@@ -362,17 +380,7 @@ func (c *Connection) Close() error {
 			return err
 		}
 
-		runSucc, err := c.consume()
-		if err != nil {
-			return err
-		}
-
-		success, ok := runSucc.(messages.SuccessMessage)
-		if !ok {
-			return errors.New("Unrecognized response type rolling back transaction: %#v", success)
-		}
-
-		log.Infof("Got success message closing connection: %#v", success)
+		// explicitly not consuming since we're closing the connection
 	}
 
 	err := c.conn.Close()
@@ -393,15 +401,21 @@ func (c *Connection) BeginWithDatabase(db string) (ITransaction, error) {
 		return nil, errors.New("can not open transaction on closed connection")
 	}
 
+	msg := c.boltProtocol.GetTxBeginMessage(db, c.accessMode)
+
+	_, isBeginMsg := msg.(messages.BeginMessage)
+
 	// send BEGIN
-	err := c.sendMessage(c.boltProtocol.GetTxBeginMessage(db, c.accessMode))
+	err := c.sendMessage(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.sendMessage(messages.PullAllMessage{})
-	if err != nil {
-		return nil, err
+	if !isBeginMsg {
+		err = c.sendMessage(c.boltProtocol.GetPullAllMessage())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	runSucc, err := c.consume()
@@ -409,22 +423,26 @@ func (c *Connection) BeginWithDatabase(db string) (ITransaction, error) {
 		return nil, err
 	}
 
-	pullSucc, err := c.consume()
-	if err != nil {
-		return nil, err
+	var pullSucc interface{}
+	if !isBeginMsg {
+		pullSucc, err = c.consume()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	success, ok := runSucc.(messages.SuccessMessage)
 	if !ok {
-		return nil, errors.New("Unrecognized response type rolling back transaction: %#v", success)
+		return nil, errors.New("Unrecognized response type beginning transaction: %#v", success)
 	}
 
-	log.Infof("Got success message rolling back transaction: %#v", success)
-
-	pull, ok := pullSucc.(messages.SuccessMessage)
-	if !ok {
-		return nil, errors.New("Unrecognized response type pulling transaction:  %#v", pull)
+	if !isBeginMsg {
+		pull, ok := pullSucc.(messages.SuccessMessage)
+		if !ok {
+			return nil, errors.New("Unrecognized response beginning transaction:  %#v", pull)
+		}
 	}
+
 
 	c.transaction = &boltTransaction{
 		conn: c,
@@ -472,7 +490,7 @@ func (c *Connection) consume() (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return failure, errors.Wrap(failure, "Neo4J reported a failure for the query")
+		return failure, errors.Wrap(failure, "Neo4J reported a failure for the runQuery")
 	}
 
 	return respInt, err

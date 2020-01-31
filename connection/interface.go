@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Result represents a result from a query that returns no data
+// Result represents a result from a runQuery that returns no data
 type IResult interface {
 	GetStats() (map[string]interface{}, bool)
 	GetNodesCreated() (int64, bool)
@@ -26,7 +26,7 @@ type IResult interface {
 type IRows interface {
 	// Columns Gets the names of the columns in the returned dataset
 	Columns() []string
-	// Metadata Gets all of the metadata returned from Neo on query start
+	// Metadata Gets all of the metadata returned from Neo on runQuery start
 	Metadata() map[string]interface{}
 	// Close the rows, flushing any existing datastream
 	Close() error
@@ -48,15 +48,20 @@ type IRows interface {
 //	// Close Closes the statement. See sql/internalDriver.IStmt.
 //	Close() error
 //
-//	// query stuff
+//	// runQuery stuff
 //	IQuery
 //}
 
 type IQuery interface {
-	// ExecNeo executes a query that returns no rows. Implements a Neo-friendly alternative to sql/internalDriver.
+	// ExecNeo executes a runQuery that returns no rows.
 	Exec(query string, params QueryParams) (IResult, error)
-	// QueryNeo executes a query that returns data. Implements a Neo-friendly alternative to sql/internalDriver.
+
+	ExecWithDb(query string, params QueryParams, db string) (IResult, error)
+
+	// QueryNeo executes a runQuery that returns data.
 	Query(query string, params QueryParams) (IRows, error)
+
+	QueryWithDb(query string, params QueryParams, db string) (IRows, error)
 }
 
 // ITransaction controls a transaction

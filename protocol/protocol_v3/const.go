@@ -1,7 +1,7 @@
 package protocol_v3
 
 const (
-	ProtocolVersion = 2
+	ProtocolVersion = 3
 )
 
 var (

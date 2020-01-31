@@ -61,7 +61,7 @@ func (b *boltRows) Close() error {
 
 	if !b.consumed {
 		// Discard all messages if not consumed
-		respInt, err := b.conn.sendMessageConsume(&messages.DiscardAllMessage{})
+		respInt, err := b.conn.sendMessageConsume(b.conn.boltProtocol.GetDiscardAllMessage())
 		if err != nil {
 			return errors.Wrap(err, "An error occurred discarding messages on row close")
 		}
@@ -94,7 +94,7 @@ func (b *boltRows) Next() ([]interface{}, map[string]interface{}, error) {
 
 	if !b.consumed {
 		b.consumed = true
-		if err := b.conn.sendMessage(&messages.PullAllMessage{}); err != nil {
+		if err := b.conn.sendMessage(b.conn.boltProtocol.GetPullAllMessage()); err != nil {
 			b.finishedConsume = true
 			return nil, nil, err
 		}
@@ -114,7 +114,7 @@ func (b *boltRows) Next() ([]interface{}, map[string]interface{}, error) {
 		log.Infof("Got record message: %#v", resp)
 		return resp.Fields, nil, nil
 	default:
-		return nil, nil, errors.New("Unrecognized response type getting next query row: %#v", resp)
+		return nil, nil, errors.New("Unrecognized response type getting next runQuery row: %#v", resp)
 	}
 }
 

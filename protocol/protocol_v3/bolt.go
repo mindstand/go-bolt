@@ -11,6 +11,14 @@ import (
 
 type BoltProtocolV3 struct {}
 
+func (b *BoltProtocolV3) GetDiscardMessage(qid int64) structures.Structure {
+	panic("implement me")
+}
+
+func (b *BoltProtocolV3) GetDiscardAllMessage() structures.Structure {
+	panic("implement me")
+}
+
 func (b *BoltProtocolV3) SupportsMultiDatabase() bool {
 	return false
 }
@@ -47,6 +55,10 @@ func (b *BoltProtocolV3) GetRunMessage(query string, params map[string]interface
 	} else {
 		return messages.NewUnmanagedTxRunMessage(query, params)
 	}
+}
+
+func (b *BoltProtocolV3) GetPullAllMessage() structures.Structure {
+	return messages.NewPullAllMessage()
 }
 
 func (b *BoltProtocolV3) Marshal(v interface{}) ([]byte, error) {

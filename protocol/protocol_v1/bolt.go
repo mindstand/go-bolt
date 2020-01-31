@@ -13,6 +13,14 @@ type BoltProtocolV1 struct {
 
 }
 
+func (b *BoltProtocolV1) GetDiscardMessage(qid int64) structures.Structure {
+	return messages.NewDiscardAllMessage()
+}
+
+func (b *BoltProtocolV1) GetDiscardAllMessage() structures.Structure {
+	return messages.NewDiscardAllMessage()
+}
+
 func (b *BoltProtocolV1) SupportsMultiDatabase() bool {
 	return false
 }
@@ -39,6 +47,10 @@ func (b *BoltProtocolV1) GetInitMessage(client string, authToken map[string]inte
 
 func (b *BoltProtocolV1) GetRunMessage(query string, params map[string]interface{}, dbName string, mode constants.AccessMode, autoCommit bool) structures.Structure {
 	return messages.NewRunMessage(query, params)
+}
+
+func (b *BoltProtocolV1) GetPullAllMessage() structures.Structure {
+	return messages.NewPullAllMessage()
 }
 
 func (b *BoltProtocolV1) Marshal(v interface{}) ([]byte, error) {
