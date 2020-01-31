@@ -13,7 +13,6 @@ import (
 
 const clusterOverview = "call dbms.compose.overview()"
 
-
 type neoNodeType int
 
 func infoFromRoleString(s string) (neoNodeType, constants.AccessMode) {

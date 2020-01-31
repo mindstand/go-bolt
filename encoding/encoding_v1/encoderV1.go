@@ -13,8 +13,6 @@ import (
 	"github.com/mindstand/go-bolt/structures"
 )
 
-
-
 // EncoderV1 encodes objects of different types to the given stream.
 // Attempts to support all builtin golang types, when it can be confidently
 // mapped to a data type from: http://alpha.neohq.net/docs/server-manual/bolt-serialization.html#bolt-packstream-structures

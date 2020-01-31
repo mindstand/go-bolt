@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-
 // Result represents a result from a runQuery that returns no data
 type IResult interface {
 	GetStats() (map[string]interface{}, bool)

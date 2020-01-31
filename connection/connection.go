@@ -53,8 +53,8 @@ func (r *readWrite) Read(p []byte) (n int, err error) {
 }
 
 type Connection struct {
-	boltProtocol protocol.IBoltProtocol
-	protocolVersion int
+	boltProtocol         protocol.IBoltProtocol
+	protocolVersion      int
 	protocolVersionBytes []byte
 
 	// connection information
@@ -63,24 +63,24 @@ type Connection struct {
 	hostPort string
 
 	// tls information
-	useTLS        bool
-	certFile      string
-	caCertFile    string
-	keyFile       string
-	tlsNoVerify   bool
+	useTLS      bool
+	certFile    string
+	caCertFile  string
+	keyFile     string
+	tlsNoVerify bool
 
 	// connection config
 	accessMode constants.AccessMode
 
 	// handlers
-	readWrite *readWrite
+	readWrite   *readWrite
 	transaction ITransaction
 
 	// connection stuff
-	timeout       time.Duration
-	chunkSize     uint16
-	conn          net.Conn
-	closed bool
+	timeout   time.Duration
+	chunkSize uint16
+	conn      net.Conn
+	closed    bool
 	openQuery bool
 }
 
@@ -107,8 +107,8 @@ func newConnectionFromConnectionString(connStr string) (*Connection, error) {
 	}
 
 	connection := Connection{
-		timeout:       time.Second * time.Duration(60),
-		chunkSize:     math.MaxUint16,
+		timeout:   time.Second * time.Duration(60),
+		chunkSize: math.MaxUint16,
 	}
 
 	connection.hostPort = _url.Host
@@ -234,7 +234,7 @@ func (c *Connection) handshake() ([]byte, error) {
 		return nil, err
 	} else if numRead != 4 {
 		return nil, fmt.Errorf("expected [4] bytes but got [%v]", numRead)
-	} else if bytes.Equal(version, noVersionSupported){
+	} else if bytes.Equal(version, noVersionSupported) {
 		return nil, errors.New("server responded with no supported version")
 	}
 
@@ -266,7 +266,6 @@ func (c *Connection) initialize() error {
 	c.protocolVersion = version
 	c.protocolVersionBytes = versionBytes
 	c.boltProtocol = boltProtocol
-
 
 	return c.sendInit(c.boltProtocol.GetInitMessage(ClientID, messages.BuildAuthTokenBasic(c.user, c.password)))
 }
@@ -321,11 +320,11 @@ func (c *Connection) Exec(query string, params QueryParams) (IResult, error) {
 }
 
 func (c *Connection) ExecWithDb(query string, params QueryParams, db string) (IResult, error) {
-	if !c.boltProtocol.SupportsMultiDatabase() && db != ""{
+	if !c.boltProtocol.SupportsMultiDatabase() && db != "" {
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
 	}
 
-	success, err := c.runQuery(query, params, db,false)
+	success, err := c.runQuery(query, params, db, false)
 	if err != nil {
 		return nil, err
 	}
@@ -338,11 +337,11 @@ func (c *Connection) Query(query string, params QueryParams) (IRows, error) {
 }
 
 func (c *Connection) QueryWithDb(query string, params QueryParams, db string) (IRows, error) {
-	if !c.boltProtocol.SupportsMultiDatabase() && db != ""{
+	if !c.boltProtocol.SupportsMultiDatabase() && db != "" {
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
 	}
 
-	success, err := c.runQuery(query, params, db,false)
+	success, err := c.runQuery(query, params, db, false)
 	if err != nil {
 		return nil, err
 	}
@@ -475,9 +474,8 @@ func (c *Connection) BeginWithDatabase(db string) (ITransaction, error) {
 		}
 	}
 
-
 	c.transaction = &boltTransaction{
-		conn: c,
+		conn:   c,
 		closed: false,
 	}
 

@@ -55,24 +55,24 @@ const (
 	// Struct16Marker represents the encoding marker byte for a struct object
 	Struct16Marker = 0xDD
 
-	DateSignature byte = 'D'
-	DateStructSize int = 1
+	DateSignature  byte = 'D'
+	DateStructSize int  = 1
 
-	TimeSignature byte = 'T'
-	TimeStructSize int = 2
+	TimeSignature  byte = 'T'
+	TimeStructSize int  = 2
 
-	LocalTimeSignature byte = 't'
-	LocalTimeStructSize int = 2
+	LocalTimeSignature  byte = 't'
+	LocalTimeStructSize int  = 2
 
-	LocalDateTimeSignature byte = 'd'
-	LocalDateTimeStructSize int = 2
+	LocalDateTimeSignature  byte = 'd'
+	LocalDateTimeStructSize int  = 2
 
 	DateTimeWithZoneOffsetSignature byte = 'F'
-	DateTimeWithZoneIdSignature byte = 'f'
-	DateTimeStructSize int = 3
+	DateTimeWithZoneIdSignature     byte = 'f'
+	DateTimeStructSize              int  = 3
 
-	DurationSignature byte = 'E'
-	DurationTimeStructSize int = 4
+	DurationSignature      byte = 'E'
+	DurationTimeStructSize int  = 4
 )
 
 var (

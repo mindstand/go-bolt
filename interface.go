@@ -16,4 +16,3 @@ type IDriverPool interface {
 	Reclaim(connection.IConnection) error
 	Close() error
 }
-

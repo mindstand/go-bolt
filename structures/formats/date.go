@@ -1,5 +1,3 @@
 package formats
 
-const (
-
-)
+const ()

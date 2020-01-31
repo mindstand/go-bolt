@@ -103,4 +103,3 @@ func (c *ConnectionPooledObjectFactory) PassivateObject(ctx context.Context, obj
 
 	return conn.MakeIdle()
 }
-

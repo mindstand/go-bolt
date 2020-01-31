@@ -54,7 +54,7 @@ func (b *boltResult) GetNodesDeleted() (int64, bool) {
 	return num.(int64), ok
 }
 
-func (b *boltResult) GetRelationshipsDeleted() (int64, bool){
+func (b *boltResult) GetRelationshipsDeleted() (int64, bool) {
 	stats, ok := b.GetStats()
 	if !ok {
 		return -1, false
@@ -67,4 +67,3 @@ func (b *boltResult) GetRelationshipsDeleted() (int64, bool){
 func (b *boltResult) Metadata() map[string]interface{} {
 	return b.metadata
 }
-

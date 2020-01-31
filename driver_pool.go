@@ -18,7 +18,7 @@ type driverPool struct {
 }
 
 func newDriverPool(connStr string, maxConns int) (*driverPool, error) {
-	dPool := pool.NewObjectPool(context.Background(), &ConnectionPooledObjectFactory{connectionString:connStr}, &pool.ObjectPoolConfig{
+	dPool := pool.NewObjectPool(context.Background(), &ConnectionPooledObjectFactory{connectionString: connStr}, &pool.ObjectPoolConfig{
 		LIFO:                     true,
 		MaxTotal:                 maxConns,
 		MaxIdle:                  maxConns,
@@ -87,7 +87,6 @@ func (d *driverPool) reclaim(conn connection.IConnection) error {
 	if conn == nil {
 		return errors.New("cannot reclaim nil connection")
 	}
-
 
 	return d.pool.ReturnObject(context.Background(), conn)
 }

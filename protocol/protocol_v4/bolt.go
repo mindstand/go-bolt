@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-type BoltProtocolV4 struct {}
+type BoltProtocolV4 struct{}
 
 func (b *BoltProtocolV4) GetDiscardMessage(qid int64) structures.Structure {
 	return messages.NewDiscardMessage(messages.StreamUnlimited, qid)

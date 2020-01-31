@@ -8,7 +8,7 @@ const (
 )
 
 // DiscardMessage Represents an DISCARD_ALL message
-type DiscardMessage struct{
+type DiscardMessage struct {
 	metadata map[string]interface{}
 }
 

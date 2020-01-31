@@ -56,4 +56,3 @@ func BuildTxMetadataWithDatabase(txTimeout *time.Duration, txMetadata map[string
 
 	return toReturn
 }
-

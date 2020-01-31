@@ -5,13 +5,13 @@ const (
 	// PULL
 	// binary [0011 1111]
 	//PullMessageSignature = 0x3F
-	PullMessageSignature = 0x2F
-	StreamUnlimited int64 = -1
-	AbsentQueryId int64 = -1
+	PullMessageSignature       = 0x2F
+	StreamUnlimited      int64 = -1
+	AbsentQueryId        int64 = -1
 )
 
 // PullMessage Represents an PULL_ALL message
-type PullMessage struct{
+type PullMessage struct {
 	metadata map[string]interface{}
 }
 

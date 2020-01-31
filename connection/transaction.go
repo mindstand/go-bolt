@@ -8,7 +8,7 @@ import (
 )
 
 type boltTransaction struct {
-	conn *Connection
+	conn   *Connection
 	closed bool
 }
 
@@ -17,11 +17,11 @@ func (t *boltTransaction) Exec(query string, params QueryParams) (IResult, error
 }
 
 func (t *boltTransaction) ExecWithDb(query string, params QueryParams, db string) (IResult, error) {
-	if !t.conn.boltProtocol.SupportsMultiDatabase() && db != ""{
+	if !t.conn.boltProtocol.SupportsMultiDatabase() && db != "" {
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
 	}
 
-	success, err := t.conn.runQuery(query, params, db,true)
+	success, err := t.conn.runQuery(query, params, db, true)
 	if err != nil {
 		return nil, err
 	}
@@ -34,11 +34,11 @@ func (t *boltTransaction) Query(query string, params QueryParams) (IRows, error)
 }
 
 func (t *boltTransaction) QueryWithDb(query string, params QueryParams, db string) (IRows, error) {
-	if !t.conn.boltProtocol.SupportsMultiDatabase() && db != ""{
+	if !t.conn.boltProtocol.SupportsMultiDatabase() && db != "" {
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
 	}
 
-	success, err := t.conn.runQuery(query, params, db,true)
+	success, err := t.conn.runQuery(query, params, db, true)
 	if err != nil {
 		return nil, err
 	}
@@ -65,13 +65,12 @@ func (t *boltTransaction) Commit() error {
 		return err
 	}
 
-	if !isCommitType{
+	if !isCommitType {
 		err = t.conn.sendMessage(t.conn.boltProtocol.GetPullAllMessage())
 		if err != nil {
 			return err
 		}
 	}
-
 
 	runSucc, err := t.conn.consume()
 	if err != nil {
@@ -135,7 +134,6 @@ func (t *boltTransaction) Rollback() error {
 			return err
 		}
 	}
-
 
 	runSucc, err := t.conn.consume()
 	if err != nil {

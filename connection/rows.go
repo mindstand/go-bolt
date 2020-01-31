@@ -9,7 +9,7 @@ import (
 
 type boltRows struct {
 	metadata        map[string]interface{}
-	conn *Connection
+	conn            *Connection
 	closed          bool
 	consumed        bool
 	finishedConsume bool
@@ -17,14 +17,14 @@ type boltRows struct {
 
 func newRows(conn *Connection, metadata map[string]interface{}) *boltRows {
 	return &boltRows{
-		conn: conn,
-		metadata:  metadata,
+		conn:     conn,
+		metadata: metadata,
 	}
 }
 
 func newQueryRows(conn *Connection, metadata map[string]interface{}) *boltRows {
 	rows := newRows(conn, metadata)
-	rows.consumed = true       // Already consumed from pipeline with PULL_ALL
+	rows.consumed = true // Already consumed from pipeline with PULL_ALL
 	return rows
 }
 

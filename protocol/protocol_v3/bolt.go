@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-type BoltProtocolV3 struct {}
+type BoltProtocolV3 struct{}
 
 func (b *BoltProtocolV3) GetDiscardMessage(qid int64) structures.Structure {
 	panic("implement me")
@@ -76,4 +76,3 @@ func (b *BoltProtocolV3) NewEncoder(w io.Writer, chunkSize uint16) encoding.IEnc
 func (b *BoltProtocolV3) NewDecoder(r io.Reader) encoding.IDecoder {
 	return encoding_v2.NewDecoder(r)
 }
-

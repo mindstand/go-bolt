@@ -8,23 +8,23 @@ const (
 )
 
 const (
-	SchemeKey = "scheme"
-	PrincipalKey = "principal"
+	SchemeKey      = "scheme"
+	PrincipalKey   = "principal"
 	CredentialsKey = "credentials"
-	RealmKey = "realm"
-	ParametersKey = "parameters"
+	RealmKey       = "realm"
+	ParametersKey  = "parameters"
 )
 
 // InitMessage Represents an INIT message
 type InitMessage struct {
-	loc string
+	loc  string
 	data map[string]interface{}
 }
 
 func BuildAuthTokenBasicWithRealm(username, password, realm string) map[string]interface{} {
 	toReturn := map[string]interface{}{
-		SchemeKey: "basic",
-		PrincipalKey: username,
+		SchemeKey:      "basic",
+		PrincipalKey:   username,
 		CredentialsKey: password,
 	}
 
@@ -41,8 +41,8 @@ func BuildAuthTokenBasic(username, password string) map[string]interface{} {
 
 func BuildAuthTokenKerberos(base64EncodedTicket string) map[string]interface{} {
 	return map[string]interface{}{
-		SchemeKey: "kerberos",
-		PrincipalKey: "",
+		SchemeKey:      "kerberos",
+		PrincipalKey:   "",
 		CredentialsKey: base64EncodedTicket,
 	}
 }
@@ -53,7 +53,7 @@ func NewInitMessage(clientName string, authToken map[string]interface{}) InitMes
 
 	return InitMessage{
 		data: authToken,
-		loc: clientName,
+		loc:  clientName,
 	}
 }
 

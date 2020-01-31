@@ -2,10 +2,10 @@ package types
 
 const (
 	Point2DStructSignature byte = 'X'
-	Point2DStructSize int = 3
+	Point2DStructSize      int  = 3
 
 	Point3DStructSignature byte = 'Y'
-	Point3DStructSize int = 4
+	Point3DStructSize      int  = 4
 )
 
 type Point2D struct {
@@ -22,7 +22,7 @@ func (p *Point2D) AllFields() []interface{} {
 }
 
 type Point3D struct {
-	SRID int
+	SRID    int
 	X, Y, Z float64
 }
 
@@ -33,4 +33,3 @@ func (p *Point3D) Signature() int {
 func (p *Point3D) AllFields() []interface{} {
 	return []interface{}{p.SRID, p.X, p.Y, p.Z}
 }
-

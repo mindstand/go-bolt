@@ -10,7 +10,6 @@ import (
 )
 
 type BoltProtocolV1 struct {
-
 }
 
 func (b *BoltProtocolV1) GetDiscardMessage(qid int64) structures.Structure {

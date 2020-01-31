@@ -15,7 +15,7 @@ const (
 type RunWithMetadataMessage struct {
 	statement  string
 	parameters map[string]interface{}
-	metadata map[string]interface{}
+	metadata   map[string]interface{}
 }
 
 // todo update to support bookmarks at some point

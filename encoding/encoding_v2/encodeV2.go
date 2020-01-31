@@ -14,8 +14,6 @@ import (
 	"github.com/mindstand/go-bolt/structures"
 )
 
-
-
 // EncoderV2 encodes objects of different types to the given stream.
 // Attempts to support all builtin golang types, when it can be confidently
 // mapped to a data type from: http://alpha.neohq.net/docs/server-manual/bolt-serialization.html#bolt-packstream-structures
@@ -215,8 +213,8 @@ func (e EncoderV2) encodeTime(t time.Time) error {
 }
 
 func (e EncoderV2) encodeDuration(d time.Duration) error {
-	months := d.Seconds()/2600640
-	days := d.Seconds()/86400
+	months := d.Seconds() / 2600640
+	days := d.Seconds() / 86400
 	seconds := d.Seconds()
 	nano := d.Nanoseconds()
 

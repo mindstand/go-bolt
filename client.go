@@ -17,24 +17,24 @@ type IClient interface {
 
 type Client struct {
 	// config stuff
-	connStr             string
-	host                string
-	port                int
-	routing             bool
-	pooled              bool
-	maxConnections      int
-	negotiateVersion    bool
-	user                string
-	password            string
-	serverVersionBytes       []byte
-	serverVersion int
-	timeout             time.Duration
-	chunkSize           uint16
-	useTLS              bool
-	certFile            string
-	caCertFile          string
-	keyFile             string
-	tlsNoVerify         bool
+	connStr            string
+	host               string
+	port               int
+	routing            bool
+	pooled             bool
+	maxConnections     int
+	negotiateVersion   bool
+	user               string
+	password           string
+	serverVersionBytes []byte
+	serverVersion      int
+	timeout            time.Duration
+	chunkSize          uint16
+	useTLS             bool
+	certFile           string
+	caCertFile         string
+	keyFile            string
+	tlsNoVerify        bool
 }
 
 func NewClient(opts ...Opt) (IClient, error) {

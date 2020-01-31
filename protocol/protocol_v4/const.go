@@ -7,4 +7,3 @@ const (
 var (
 	ProtocolVersionBytes = []byte{0x00, 0x00, 0x00, 0x04}
 )
-
