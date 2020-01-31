@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+
 // Result represents a result from a runQuery that returns no data
 type IResult interface {
 	GetStats() (map[string]interface{}, bool)
@@ -38,19 +39,6 @@ type IRows interface {
 	// there are a lot of rows
 	All() ([][]interface{}, map[string]interface{}, error)
 }
-
-// IStmt represents a statement to run against the database
-//
-// IStmt objects, and any rows prepared within ARE NOT
-// THREAD SAFE.  If you want to use multiple go routines with these objects,
-// you should use a internalDriver to create a new conn for each routine.
-//type IStmt interface {
-//	// Close Closes the statement. See sql/internalDriver.IStmt.
-//	Close() error
-//
-//	// runQuery stuff
-//	IQuery
-//}
 
 type IQuery interface {
 	// ExecNeo executes a runQuery that returns no rows.
@@ -90,6 +78,14 @@ type IConnection interface {
 
 	// closes connection
 	Close() error
+
+	GetProtocolVersionNumber() int
+	GetProtocolVersionBytes() []byte
+
+	// returns true if open, returns false if not
+	ValidateOpen() bool
+
+	MakeIdle() error
 
 	Begin() (ITransaction, error)
 	BeginWithDatabase(db string) (ITransaction, error)

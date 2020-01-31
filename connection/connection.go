@@ -55,12 +55,12 @@ func (r *readWrite) Read(p []byte) (n int, err error) {
 type Connection struct {
 	boltProtocol protocol.IBoltProtocol
 	protocolVersion int
+	protocolVersionBytes []byte
 
 	// connection information
 	user     string
 	password string
 	hostPort string
-	port     int
 
 	// tls information
 	useTLS        bool
@@ -85,7 +85,7 @@ type Connection struct {
 }
 
 func CreateBoltConn(connStr string) (IConnection, error) {
-	conn, err := NewConnectionFromConnectionString(connStr)
+	conn, err := newConnectionFromConnectionString(connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func CreateBoltConn(connStr string) (IConnection, error) {
 	return conn, nil
 }
 
-func NewConnectionFromConnectionString(connStr string) (*Connection, error) {
+func newConnectionFromConnectionString(connStr string) (*Connection, error) {
 	_url, err := url.Parse(connStr)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred parsing bolt URL, %w", err)
@@ -144,6 +144,14 @@ func NewConnectionFromConnectionString(connStr string) (*Connection, error) {
 	}
 
 	return &connection, nil
+}
+
+func (c *Connection) GetProtocolVersionNumber() int {
+	return c.protocolVersion
+}
+
+func (c *Connection) GetProtocolVersionBytes() []byte {
+	return c.protocolVersionBytes
 }
 
 // todo better errors (wrap stuff)
@@ -256,7 +264,9 @@ func (c *Connection) initialize() error {
 	log.Infof("Using protocol version %v", version)
 
 	c.protocolVersion = version
+	c.protocolVersionBytes = versionBytes
 	c.boltProtocol = boltProtocol
+
 
 	return c.sendInit(c.boltProtocol.GetInitMessage(ClientID, messages.BuildAuthTokenBasic(c.user, c.password)))
 }
@@ -280,6 +290,20 @@ func (c *Connection) sendInit(message structures.Structure) error {
 		log.Errorf("Got an unrecognized message when initializing connection :%+v", resp)
 		return c.Close()
 	}
+}
+
+func (c *Connection) ValidateOpen() bool {
+	if c.closed {
+		return false
+	}
+
+	if c.conn == nil {
+		return false
+	}
+
+	// todo more checks to validate that this connection still works
+
+	return true
 }
 
 // Sets the size of the chunks to write to the stream
@@ -387,6 +411,14 @@ func (c *Connection) Close() error {
 	c.closed = true
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *Connection) MakeIdle() error {
+	if c.transaction != nil {
+		return c.transaction.Rollback()
 	}
 
 	return nil

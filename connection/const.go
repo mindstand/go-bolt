@@ -16,13 +16,6 @@ var (
 	ClientID = "GoBolt/" + Version
 )
 
-type DriverMode int
-
-const (
-	ReadOnlyMode  DriverMode = 0
-	ReadWriteMode DriverMode = 1
-)
-
 type QueryParams map[string]interface{}
 
 func (q *QueryParams) GetMap() map[string]interface{} {

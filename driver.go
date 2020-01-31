@@ -1,35 +1,22 @@
 package goBolt
 
-import "github.com/mindstand/go-bolt/connection"
+import (
+	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/constants"
+)
 
 type internalDriver struct {
-	recorder          *recorder
-	createIfNotExists bool
-	connectionFactory IBoltConnectionFactory
+	client *Client
 }
 
+// standard driver is basically a factory
+// its not keeping track of connections
+// connections are expected to be killed when done
 type Driver struct {
 	internalDriver *internalDriver
 }
 
-func (d *Driver) Open(mode connection.DriverMode) (IConnection, error) {
-	return d.internalDriver.connectionFactory.CreateBoltConnection()
-}
-
-type DriverV4 struct {
-	internalDriver *internalDriver
-}
-
-func (d DriverV4) Open(db string, mode connection.DriverMode) (IConnection, error) {
-	conn, err := d.internalDriver.connectionFactory.CreateBoltConnection()
-	if err != nil {
-		return nil, err
-	}
-
-	err = handleV4OpenConnection(conn, db, d.internalDriver.createIfNotExists)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
+// mode doesn't matter since its not a pooled or routing driver
+func (d *Driver) Open(mode constants.AccessMode) (connection.IConnection, error) {
+	return connection.CreateBoltConn(d.internalDriver.client.connStr)
 }

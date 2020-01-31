@@ -2,7 +2,6 @@ package goBolt
 
 import (
 	"fmt"
-	"github.com/mindstand/go-bolt/connection"
 	"github.com/mindstand/go-bolt/errors"
 	"math"
 	"time"
@@ -14,12 +13,6 @@ type IClient interface {
 
 	// opens a internalDriver pool to neo4j
 	NewDriverPool(size int) (IDriverPool, error)
-
-	// opens a v4 internalDriver
-	NewDriverV4() (IDriverV4, error)
-
-	// opens a v4 internalDriver pool
-	NewDriverPoolV4(size int) (IDriverPoolV4, error)
 }
 
 type Client struct {
@@ -33,7 +26,8 @@ type Client struct {
 	negotiateVersion    bool
 	user                string
 	password            string
-	serverVersion       []byte
+	serverVersionBytes       []byte
+	serverVersion int
 	timeout             time.Duration
 	chunkSize           uint16
 	useTLS              bool
@@ -41,9 +35,6 @@ type Client struct {
 	caCertFile          string
 	keyFile             string
 	tlsNoVerify         bool
-	readOnly            bool
-	supportsV4          bool
-	createDbIfNotExists bool
 }
 
 func NewClient(opts ...Opt) (IClient, error) {
@@ -67,12 +58,6 @@ func NewClient(opts ...Opt) (IClient, error) {
 	// timeout not set
 	if client.timeout == 0 {
 		client.timeout = time.Second * time.Duration(60)
-	}
-
-	// check version set correctly
-	if len(client.serverVersion) == 0 {
-		// set the server version, default to 3
-		client.serverVersion = make([]byte, 4)
 	}
 
 	// check chunk size
@@ -105,11 +90,6 @@ func NewClient(opts ...Opt) (IClient, error) {
 			return nil, errors.Wrap(errors.ErrConfiguration, "user can not be empty")
 		}
 
-		// todo check if neo4j allows passwordless users
-		if client.password == "" {
-			return nil, errors.Wrap(errors.ErrConfiguration, "password can not be empty")
-		}
-
 		client.connStr = fmt.Sprintf("%s://%s:%s@%s:%v", protocol, client.user, client.password, client.host, client.port)
 
 		// append tls portion if needed
@@ -124,14 +104,12 @@ func NewClient(opts ...Opt) (IClient, error) {
 }
 
 func (c *Client) NewDriver() (IDriver, error) {
+	if c.routing {
+		return nil, errors.New("can not open non pooled driver with routing enabled")
+	}
+
 	driver := &internalDriver{
-		createIfNotExists: c.createDbIfNotExists,
-		connectionFactory: &connection.boltConnectionFactory{
-			timeout:       c.timeout,
-			chunkSize:     c.chunkSize,
-			serverVersion: c.serverVersion,
-			connStr:       c.connStr,
-		},
+		client: c,
 	}
 
 	return &Driver{internalDriver: driver}, nil
@@ -144,41 +122,6 @@ func (c *Client) NewDriverPool(size int) (IDriverPool, error) {
 	}
 
 	return &DriverPool{
-		internalPool: driverPool,
-	}, nil
-}
-
-func (c *Client) NewDriverV4() (IDriverV4, error) {
-	if !c.supportsV4 {
-		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 internalDriver when actual version is [%s]", string(c.serverVersion))
-	}
-
-	driver := &internalDriver{
-		createIfNotExists: c.createDbIfNotExists,
-		connectionFactory: &connection.boltConnectionFactory{
-			timeout:       c.timeout,
-			chunkSize:     c.chunkSize,
-			serverVersion: c.serverVersion,
-			connStr:       c.connStr,
-		},
-	}
-
-	return &DriverV4{
-		internalDriver: driver,
-	}, nil
-}
-
-func (c *Client) NewDriverPoolV4(size int) (IDriverPoolV4, error) {
-	if !c.supportsV4 {
-		return nil, errors.Wrap(errors.ErrInvalidVersion, "attempting to use v4 internalDriver when actual version is [%s]", string(c.serverVersion))
-	}
-
-	driverPool, err := newDriverPool(c.connStr, size)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DriverPoolV4{
 		internalPool: driverPool,
 	}, nil
 }

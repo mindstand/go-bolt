@@ -2,6 +2,8 @@ package goBolt
 
 import (
 	"fmt"
+	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/constants"
 	"github.com/mindstand/go-bolt/errors"
 	"strings"
 )
@@ -11,27 +13,21 @@ import (
 
 const clusterOverview = "call dbms.compose.overview()"
 
-type dbAction int
-
-const (
-	Read  dbAction = 0
-	Write dbAction = 1
-)
 
 type neoNodeType int
 
-func infoFromRoleString(s string) (neoNodeType, dbAction) {
+func infoFromRoleString(s string) (neoNodeType, constants.AccessMode) {
 	adjustedString := strings.ToLower(s)
 
 	switch adjustedString {
 	case "leader":
-		return Leader, Write
+		return Leader, constants.WriteMode
 	case "follower":
-		return Follower, Read
+		return Follower, constants.ReadMode
 	case "read_replica":
-		return ReadReplica, Read
+		return ReadReplica, constants.ReadMode
 	case "write_replica":
-		return WriteReplica, Write
+		return WriteReplica, constants.WriteMode
 	default:
 		return -1, -1
 	}
@@ -61,7 +57,7 @@ type clusterConnectionConfig struct {
 	WriteReplicas []neoNodeConfig
 }
 
-func getClusterInfo(conn IConnection) (*clusterConnectionConfig, error) {
+func getClusterInfo(conn connection.IConnection) (*clusterConnectionConfig, error) {
 	if conn == nil {
 		return nil, errors.New("bolt connection can not be nil")
 	}
