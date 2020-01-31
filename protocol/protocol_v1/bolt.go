@@ -1,6 +1,7 @@
 package protocol_v1
 
 import (
+	"github.com/mindstand/go-bolt/constants"
 	"github.com/mindstand/go-bolt/encoding"
 	"github.com/mindstand/go-bolt/encoding/encoding_v1"
 	"github.com/mindstand/go-bolt/structures"
@@ -12,8 +13,32 @@ type BoltProtocolV1 struct {
 
 }
 
+func (b *BoltProtocolV1) SupportsMultiDatabase() bool {
+	return false
+}
+
+func (b *BoltProtocolV1) GetCloseMessage() (structures.Structure, bool) {
+	return nil, false
+}
+
+func (b *BoltProtocolV1) GetTxBeginMessage(database string, accessMode constants.AccessMode) structures.Structure {
+	return messages.NewRunMessage("BEGIN", nil)
+}
+
+func (b *BoltProtocolV1) GetTxCommitMessage() structures.Structure {
+	return messages.NewRunMessage("COMMIT", nil)
+}
+
+func (b *BoltProtocolV1) GetTxRollbackMessage() structures.Structure {
+	return messages.NewRunMessage("ROLLBACK", nil)
+}
+
 func (b *BoltProtocolV1) GetInitMessage(client string, authToken map[string]interface{}) structures.Structure {
 	return messages.NewInitMessage(client, authToken)
+}
+
+func (b *BoltProtocolV1) GetRunMessage(query string, params map[string]interface{}, dbName string, mode constants.AccessMode, autoCommit bool) structures.Structure {
+	return messages.NewRunMessage(query, params)
 }
 
 func (b *BoltProtocolV1) Marshal(v interface{}) ([]byte, error) {

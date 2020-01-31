@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"database/sql/driver"
 	"fmt"
+	"github.com/mindstand/go-bolt/constants"
 	"github.com/mindstand/go-bolt/errors"
 	"github.com/mindstand/go-bolt/log"
 	"github.com/mindstand/go-bolt/protocol"
@@ -68,7 +69,7 @@ type Connection struct {
 	tlsNoVerify   bool
 
 	// connection config
-	readonly bool
+	accessMode constants.AccessMode
 
 	// handlers
 	readWrite *readWrite
@@ -290,7 +291,7 @@ func (c *Connection) SetTimeout(timeout time.Duration) {
 }
 
 func (c *Connection) Exec(query string, params QueryParams) (IResult, error) {
-	success, err := c.query(query, params)
+	success, err := c.query(query, params, false)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +300,7 @@ func (c *Connection) Exec(query string, params QueryParams) (IResult, error) {
 }
 
 func (c *Connection) Query(query string, params QueryParams) (IRows, error) {
-	success, err := c.query(query, params)
+	success, err := c.query(query, params, false)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +308,7 @@ func (c *Connection) Query(query string, params QueryParams) (IRows, error) {
 	return newQueryRows(c, success.Metadata), nil
 }
 
-func (c *Connection) query(query string, params QueryParams) (*messages.SuccessMessage, error) {
+func (c *Connection) query(query string, params QueryParams, dbName string, inTx bool) (*messages.SuccessMessage, error) {
 	if c.openQuery {
 		return nil, errors.New("query already open")
 	}
@@ -316,7 +317,7 @@ func (c *Connection) query(query string, params QueryParams) (*messages.SuccessM
 		return nil, errors.New("connection already closed")
 	}
 
-	err := c.sendMessage(messages.NewRunMessage(query, params))
+	err := c.sendMessage(c.boltProtocol.GetRunMessage(query, params, dbName, c.accessMode, !inTx))
 	if err != nil {
 		return nil, err
 	}
@@ -355,6 +356,25 @@ func (c *Connection) Close() error {
 		return errors.New("can not close nil transaction")
 	}
 
+	if msg, ok := c.boltProtocol.GetCloseMessage(); ok {
+		err := c.sendMessage(msg)
+		if err != nil {
+			return err
+		}
+
+		runSucc, err := c.consume()
+		if err != nil {
+			return err
+		}
+
+		success, ok := runSucc.(messages.SuccessMessage)
+		if !ok {
+			return errors.New("Unrecognized response type rolling back transaction: %#v", success)
+		}
+
+		log.Infof("Got success message closing connection: %#v", success)
+	}
+
 	err := c.conn.Close()
 	c.closed = true
 	if err != nil {
@@ -364,7 +384,7 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-func (c *Connection) Begin() (ITransaction, error) {
+func (c *Connection) BeginWithDatabase(db string) (ITransaction, error) {
 	if c.transaction != nil {
 		return nil, errors.New("transaction already open")
 	}
@@ -374,7 +394,7 @@ func (c *Connection) Begin() (ITransaction, error) {
 	}
 
 	// send BEGIN
-	err := c.sendMessage(messages.NewRunMessage("BEGIN", nil))
+	err := c.sendMessage(c.boltProtocol.GetTxBeginMessage(db, c.accessMode))
 	if err != nil {
 		return nil, err
 	}
@@ -412,6 +432,10 @@ func (c *Connection) Begin() (ITransaction, error) {
 	}
 
 	return c.transaction, nil
+}
+
+func (c *Connection) Begin() (ITransaction, error) {
+	return c.BeginWithDatabase("")
 }
 
 func (c *Connection) sendMessage(message structures.Structure) error {

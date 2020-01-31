@@ -29,7 +29,7 @@ func (t *boltTransaction) Commit() error {
 	}
 
 	// send commit
-	err := t.conn.sendMessage(messages.NewRunMessage("COMMIT", nil))
+	err := t.conn.sendMessage(t.conn.boltProtocol.GetTxCommitMessage())
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (t *boltTransaction) Rollback() error {
 	}
 
 	// send rollback
-	err := t.conn.sendMessage(messages.NewRunMessage("ROLLBACK", nil))
+	err := t.conn.sendMessage(t.conn.boltProtocol.GetTxRollbackMessage())
 	if err != nil {
 		return err
 	}

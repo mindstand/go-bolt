@@ -87,7 +87,7 @@ type IConnection interface {
 	Close() error
 
 	Begin() (ITransaction, error)
-
+	BeginWithDatabase(db string) (ITransaction, error)
 	// SetTimeout sets the read/write timeouts for the
 	// connection to Neo4j
 	SetTimeout(time.Duration)
