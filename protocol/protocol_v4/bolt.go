@@ -1,7 +1,7 @@
 package protocol_v4
 
 import (
-	"github.com/mindstand/go-bolt/constants"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/encoding"
 	"github.com/mindstand/go-bolt/encoding/encoding_v2"
 	"github.com/mindstand/go-bolt/structures"
@@ -37,7 +37,7 @@ func (b *BoltProtocolV4) GetCloseMessage() (structures.Structure, bool) {
 	return messages.NewGoodbyeMessage(), true
 }
 
-func (b *BoltProtocolV4) GetTxBeginMessage(database string, accessMode constants.AccessMode) structures.Structure {
+func (b *BoltProtocolV4) GetTxBeginMessage(database string, accessMode bolt_mode.AccessMode) structures.Structure {
 	return messages.NewBeginMessage(messages.BuildTxMetadataWithDatabase(nil, nil, database, accessMode, nil))
 }
 
@@ -49,7 +49,7 @@ func (b *BoltProtocolV4) GetTxRollbackMessage() structures.Structure {
 	return messages.NewRollbackMessage()
 }
 
-func (b *BoltProtocolV4) GetRunMessage(query string, params map[string]interface{}, dbName string, mode constants.AccessMode, autoCommit bool) structures.Structure {
+func (b *BoltProtocolV4) GetRunMessage(query string, params map[string]interface{}, dbName string, mode bolt_mode.AccessMode, autoCommit bool) structures.Structure {
 	if autoCommit {
 		return messages.NewAutoCommitTxRunMessage(query, params, 0, nil, dbName, mode)
 	} else {

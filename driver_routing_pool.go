@@ -1,72 +1,49 @@
 package goBolt
 
 import (
-	"context"
-	"fmt"
-	pool "github.com/jolestar/go-commons-pool"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/connection"
-	"github.com/mindstand/go-bolt/constants"
 	"github.com/mindstand/go-bolt/errors"
-	"github.com/mindstand/go-bolt/protocol/protocol_v4"
-	"net/url"
-	"strings"
-	"sync"
+	"github.com/mindstand/go-bolt/routing"
+	"time"
 )
 
-type routingDriverPool struct {
-	maxConns int
-	refLock  sync.Mutex
-	closed   bool
-
-	client *Client
-
-	//compose configuration
-	config *clusterConnectionConfig
-
-	//write resources
-	writeConns int
-	writePool  *pool.ObjectPool
-
-	//read resources
-	readConns int
-	readPool  *pool.ObjectPool
-}
-
-func newRoutingDriverPool(connStr string, max int, poolFunc func(context.Context) (interface{}, error)) (*routingDriverPool, error) {
-
-}
-
-func (b *routingDriverPool) refreshConnectionPool() error {
-
-}
-
-func (b *routingDriverPool) close() error {
-
-}
-
-func (b *routingDriverPool) open(db string, mode constants.AccessMode) (connection.IConnection, error) {
-
-}
-
-func (b *routingDriverPool) reclaim(conn connection.IConnection) error {
-
-}
-
-// ------------------------------
-// heres the interface impls, the core impl is above
+const refreshInterval = time.Minute * 5
 
 type RoutingDriverPool struct {
-	internalPool *routingDriverPool
+	internalPool routing.IRoutingPool
 }
 
-func (r *RoutingDriverPool) Open(mode constants.AccessMode) (connection.IConnection, error) {
-	return r.internalPool.open("", mode)
+func newRoutingPool(client *Client, size int) (*RoutingDriverPool, error) {
+	if client == nil {
+		return nil, errors.New("client can not be nil")
+	}
+
+	internalPool, err := routing.NewRoutingPool(client.connStr, size, refreshInterval)
+	if err != nil {
+		return nil, err
+	}
+
+	err = internalPool.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	return &RoutingDriverPool{internalPool: internalPool}, nil
+}
+
+func (r *RoutingDriverPool) Open(mode bolt_mode.AccessMode) (connection.IConnection, error) {
+	if mode == bolt_mode.ReadMode {
+		return r.internalPool.BorrowRConnection()
+	} else {
+		return r.internalPool.BorrowRWConnection()
+	}
 }
 
 func (r *RoutingDriverPool) Reclaim(conn connection.IConnection) error {
-	return r.internalPool.reclaim(conn)
+	return r.internalPool.Reclaim(conn)
 }
 
 func (r *RoutingDriverPool) Close() error {
-	return r.internalPool.close()
+	return r.internalPool.Stop()
 }

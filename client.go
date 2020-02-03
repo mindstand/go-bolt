@@ -121,7 +121,11 @@ func (c *Client) NewDriverPool(size int) (IDriverPool, error) {
 		return nil, err
 	}
 
-	return &DriverPool{
-		internalPool: driverPool,
-	}, nil
+	if c.routing {
+		return newRoutingPool(c, size)
+	} else {
+		return &DriverPool{
+			internalPool: driverPool,
+		}, nil
+	}
 }

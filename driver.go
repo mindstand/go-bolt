@@ -1,8 +1,8 @@
 package goBolt
 
 import (
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/connection"
-	"github.com/mindstand/go-bolt/constants"
 )
 
 type internalDriver struct {
@@ -17,6 +17,6 @@ type Driver struct {
 }
 
 // mode doesn't matter since its not a pooled or routing driver
-func (d *Driver) Open(mode constants.AccessMode) (connection.IConnection, error) {
+func (d *Driver) Open(mode bolt_mode.AccessMode) (connection.IConnection, error) {
 	return connection.CreateBoltConn(d.internalDriver.client.connStr)
 }

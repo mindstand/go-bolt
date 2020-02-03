@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"github.com/mindstand/go-bolt/constants"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/encoding"
 	"github.com/mindstand/go-bolt/structures"
 	"io"
@@ -18,7 +18,7 @@ type IBoltProtocol interface {
 	GetInitMessage(client string, authToken map[string]interface{}) structures.Structure
 	// creates begin message for the tx
 	// different versions of the protocol use either BeginMessage or RunMessage with the command BEGIN
-	GetTxBeginMessage(database string, accessMode constants.AccessMode) structures.Structure
+	GetTxBeginMessage(database string, accessMode bolt_mode.AccessMode) structures.Structure
 	// creates commit message for the tx
 	// different versions of the protocol use either CommitMessage or RunMessage with the command COMMIT
 	GetTxCommitMessage() structures.Structure
@@ -30,7 +30,7 @@ type IBoltProtocol interface {
 	GetCloseMessage() (structures.Structure, bool)
 	// creates run message
 	// newer versions of bolt protocol require additional information in run message for database specification, tx, and r/w modes
-	GetRunMessage(query string, params map[string]interface{}, dbName string, mode constants.AccessMode, autoCommit bool) structures.Structure
+	GetRunMessage(query string, params map[string]interface{}, dbName string, mode bolt_mode.AccessMode, autoCommit bool) structures.Structure
 	// creates pull all message
 	GetPullAllMessage() structures.Structure
 	// gets discard message

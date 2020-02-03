@@ -1,76 +1,54 @@
 package goBolt
 
 import (
-	"github.com/mindstand/go-bolt/connection"
-	ll "github.com/mindstand/go-bolt/log"
-	"log"
+	"github.com/mindstand/go-bolt/bolt_mode"
+	"github.com/mindstand/go-bolt/log"
 	"testing"
 )
 
 func TestClient(t *testing.T) {
-	ll.SetLevel("trace")
-	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687))
+	log.SetLevel("trace")
+	log.Info("opening client")
+	client, err := NewClient(WithBasicAuth("neo4j", "TZU6xiVZLbe5L5UmZaU5"), WithHostPort("0.0.0.0", 7687))
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
+	log.Infof("opening driver")
 	driver, err := client.NewDriver()
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	conn, err := driver.Open(connection.ReadWriteMode)
+	log.Info("opening connection")
+	conn, err := driver.Open(bolt_mode.WriteMode)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	rows, err := conn.QueryNeo("match (n) return n", nil)
+	log.Infof("executing query")
+	rows, err := conn.Query("create (:Fuck)", nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	log.Println(rows.All())
+	log.Infof("showing rows")
+	all, m, err := rows.All()
+	log.Tracef("rows: %v, %v, %v", all, m, err)
 
+	log.Trace("closing rows")
 	err = rows.Close()
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
-}
 
-func TestClientV4(t *testing.T) {
-	ll.SetLevel("trace")
-	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687), WithVersion("4"))
-	if err != nil {
-		t.Log(err)
-		t.FailNow()
-	}
-
-	driver, err := client.NewDriverV4()
-	if err != nil {
-		t.Log(err)
-		t.FailNow()
-	}
-
-	conn, err := driver.Open("system", connection.ReadWriteMode)
-	if err != nil {
-		t.Log(err)
-		t.FailNow()
-	}
-
-	rows, err := conn.QueryNeo("match (n) return n", nil)
-	if err != nil {
-		t.Log(err)
-		t.FailNow()
-	}
-
-	log.Println(rows.All())
-
-	err = rows.Close()
+	log.Trace("closing connection")
+	err = conn.Close()
 	if err != nil {
 		t.Log(err)
 		t.FailNow()

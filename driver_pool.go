@@ -3,8 +3,8 @@ package goBolt
 import (
 	"context"
 	pool "github.com/jolestar/go-commons-pool"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/connection"
-	"github.com/mindstand/go-bolt/constants"
 	"github.com/mindstand/go-bolt/errors"
 	"sync"
 )
@@ -97,7 +97,7 @@ type DriverPool struct {
 	internalPool *driverPool
 }
 
-func (d *DriverPool) Open(mode constants.AccessMode) (connection.IConnection, error) {
+func (d *DriverPool) Open(mode bolt_mode.AccessMode) (connection.IConnection, error) {
 	return d.internalPool.open()
 }
 

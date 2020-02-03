@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"database/sql/driver"
 	"fmt"
-	"github.com/mindstand/go-bolt/constants"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/errors"
 	"github.com/mindstand/go-bolt/log"
 	"github.com/mindstand/go-bolt/protocol"
@@ -70,7 +70,7 @@ type Connection struct {
 	tlsNoVerify bool
 
 	// connection config
-	accessMode constants.AccessMode
+	accessMode bolt_mode.AccessMode
 
 	// handlers
 	readWrite   *readWrite
@@ -82,6 +82,9 @@ type Connection struct {
 	conn      net.Conn
 	closed    bool
 	openQuery bool
+
+	// for pool tracking
+	id string
 }
 
 func CreateBoltConn(connStr string) (IConnection, error) {
@@ -144,6 +147,14 @@ func newConnectionFromConnectionString(connStr string) (*Connection, error) {
 	}
 
 	return &connection, nil
+}
+
+func (c *Connection) GetConnectionId() string {
+	return c.id
+}
+
+func (c *Connection) SetConnectionId(id string) {
+	c.id = id
 }
 
 func (c *Connection) GetProtocolVersionNumber() int {

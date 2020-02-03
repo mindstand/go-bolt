@@ -1,7 +1,7 @@
 package messages
 
 import (
-	"github.com/mindstand/go-bolt/constants"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"time"
 )
 
@@ -20,7 +20,7 @@ type RunWithMetadataMessage struct {
 
 // todo update to support bookmarks at some point
 // this would be used outside an explicit tx
-func NewAutoCommitTxRunMessage(query string, params map[string]interface{}, timeout time.Duration, txConfig map[string]interface{}, dbName string, mode constants.AccessMode) RunWithMetadataMessage {
+func NewAutoCommitTxRunMessage(query string, params map[string]interface{}, timeout time.Duration, txConfig map[string]interface{}, dbName string, mode bolt_mode.AccessMode) RunWithMetadataMessage {
 	return newRunMessageWithMetadata(query, params, BuildTxMetadataWithDatabase(&timeout, txConfig, dbName, mode, nil))
 }
 

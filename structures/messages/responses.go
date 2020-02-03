@@ -1,6 +1,8 @@
 package messages
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	// SuccessMessageSignature is the signature byte for the SUCCESS message
@@ -34,6 +36,23 @@ func NewSuccessMessage(metadata map[string]interface{}) SuccessMessage {
 	return SuccessMessage{
 		Metadata: metadata,
 	}
+}
+
+func (i SuccessMessage) GetAvailableAfter() int64 {
+	if i.Metadata == nil || len(i.Metadata) == 0 {
+		return -1
+	}
+
+	if after, ok := i.Metadata["result_available_after"]; ok {
+		afterAcual, ok := after.(int64)
+		if !ok {
+			return -1
+		}
+
+		return afterAcual
+	}
+
+	return -1
 }
 
 // Signature gets the signature byte for the struct

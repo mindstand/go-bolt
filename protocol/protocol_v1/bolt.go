@@ -1,7 +1,7 @@
 package protocol_v1
 
 import (
-	"github.com/mindstand/go-bolt/constants"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/encoding"
 	"github.com/mindstand/go-bolt/encoding/encoding_v1"
 	"github.com/mindstand/go-bolt/structures"
@@ -28,7 +28,7 @@ func (b *BoltProtocolV1) GetCloseMessage() (structures.Structure, bool) {
 	return nil, false
 }
 
-func (b *BoltProtocolV1) GetTxBeginMessage(database string, accessMode constants.AccessMode) structures.Structure {
+func (b *BoltProtocolV1) GetTxBeginMessage(database string, accessMode bolt_mode.AccessMode) structures.Structure {
 	return messages.NewRunMessage("BEGIN", nil)
 }
 
@@ -44,7 +44,7 @@ func (b *BoltProtocolV1) GetInitMessage(client string, authToken map[string]inte
 	return messages.NewInitMessage(client, authToken)
 }
 
-func (b *BoltProtocolV1) GetRunMessage(query string, params map[string]interface{}, dbName string, mode constants.AccessMode, autoCommit bool) structures.Structure {
+func (b *BoltProtocolV1) GetRunMessage(query string, params map[string]interface{}, dbName string, mode bolt_mode.AccessMode, autoCommit bool) structures.Structure {
 	return messages.NewRunMessage(query, params)
 }
 

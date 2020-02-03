@@ -1,4 +1,4 @@
-package constants
+package bolt_mode
 
 type AccessMode int
 

@@ -100,6 +100,23 @@ func (b *boltRows) Next() ([]interface{}, map[string]interface{}, error) {
 		}
 	}
 
+	var after int64
+
+	// check that there's anything to actually consume
+	afterI, ok := b.metadata["result_available_after"]
+	if ok {
+		after, ok = afterI.(int64)
+		if !ok {
+			after = 0
+		}
+	}
+
+	// nothing to consume
+	if after <= 0 {
+		b.finishedConsume = true
+		return []interface{}{}, b.metadata, nil
+	}
+
 	respInt, err := b.conn.consume()
 	if err != nil {
 		return nil, nil, err

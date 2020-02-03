@@ -92,4 +92,8 @@ type IConnection interface {
 	// connection to Neo4j
 	SetTimeout(time.Duration)
 	SetChunkSize(uint16)
+
+	// connection id's are for the routing driver to keep track of connections
+	GetConnectionId() string
+	SetConnectionId(id string)
 }

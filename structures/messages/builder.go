@@ -1,7 +1,7 @@
 package messages
 
 import (
-	"github.com/mindstand/go-bolt/constants"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"time"
 )
 
@@ -16,16 +16,16 @@ const (
 	defaultDbName = ""
 )
 
-func BuildTxMetadata(txTimeout *time.Duration, txMetadata map[string]interface{}, mode constants.AccessMode, bookmark interface{}) map[string]interface{} {
+func BuildTxMetadata(txTimeout *time.Duration, txMetadata map[string]interface{}, mode bolt_mode.AccessMode, bookmark interface{}) map[string]interface{} {
 	return BuildTxMetadataWithDatabase(txTimeout, txMetadata, defaultDbName, mode, bookmark)
 }
 
-func BuildTxMetadataWithDatabase(txTimeout *time.Duration, txMetadata map[string]interface{}, databaseName string, mode constants.AccessMode, bookmark interface{}) map[string]interface{} {
+func BuildTxMetadataWithDatabase(txTimeout *time.Duration, txMetadata map[string]interface{}, databaseName string, mode bolt_mode.AccessMode, bookmark interface{}) map[string]interface{} {
 	// todo replace once bookmarks are supported
 	bookmarksPresent := false
 	txTimeoutPresent := txTimeout != nil && *txTimeout != 0
 	txMetaDataPresent := txMetadata != nil && len(txMetadata) != 0
-	accessModePresent := mode != constants.ReadMode
+	accessModePresent := mode != bolt_mode.ReadMode
 	databaseNamePresent := databaseName != ""
 
 	if !bookmarksPresent && !txTimeoutPresent && !txMetaDataPresent && !accessModePresent && !databaseNamePresent {
