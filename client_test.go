@@ -30,7 +30,9 @@ func TestClient(t *testing.T) {
 	}
 
 	log.Infof("executing query")
-	rows, err := conn.Query("create (:Fuck)", nil)
+	rows, err := conn.Query("create (:TestNode{uuid:$id})", map[string]interface{}{
+		"id": "random_id",
+	})
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
