@@ -8,11 +8,22 @@ const (
 )
 
 // DiscardMessage Represents an DISCARD_ALL message
-type DiscardMessage struct{}
+type DiscardMessage struct {
+	metadata map[string]interface{}
+}
 
 // NewDiscardMessage Gets a new DiscardMessage struct
-func NewDiscardMessage() DiscardMessage {
-	return DiscardMessage{}
+func NewDiscardMessage(n, id int64) DiscardMessage {
+	mdata := map[string]interface{}{
+		"n": n,
+	}
+
+	if id != AbsentQueryId {
+		mdata["qid"] = id
+	}
+	return DiscardMessage{
+		metadata: mdata,
+	}
 }
 
 // Signature gets the signature byte for the struct

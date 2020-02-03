@@ -7,30 +7,53 @@ const (
 	InitMessageSignature = 0x01
 )
 
+const (
+	SchemeKey      = "scheme"
+	PrincipalKey   = "principal"
+	CredentialsKey = "credentials"
+	RealmKey       = "realm"
+	ParametersKey  = "parameters"
+)
+
 // InitMessage Represents an INIT message
 type InitMessage struct {
+	loc  string
 	data map[string]interface{}
 }
 
-// NewInitMessage Gets a new InitMessage struct
-func NewInitMessage(clientName string, user string, password string) InitMessage {
-	var data map[string]interface{}
-	if user == "" {
-		data = map[string]interface{}{
-			"scheme": "none",
-		}
-	} else {
-		data = map[string]interface{}{
-			"scheme":      "basic",
-			"principal":   user,
-			"credentials": password,
-		}
+func BuildAuthTokenBasicWithRealm(username, password, realm string) map[string]interface{} {
+	toReturn := map[string]interface{}{
+		SchemeKey:      "basic",
+		PrincipalKey:   username,
+		CredentialsKey: password,
 	}
 
-	data["user_agent"] = clientName
+	if realm == "" {
+		toReturn[RealmKey] = realm
+	}
+
+	return toReturn
+}
+
+func BuildAuthTokenBasic(username, password string) map[string]interface{} {
+	return BuildAuthTokenBasicWithRealm(username, password, "")
+}
+
+func BuildAuthTokenKerberos(base64EncodedTicket string) map[string]interface{} {
+	return map[string]interface{}{
+		SchemeKey:      "kerberos",
+		PrincipalKey:   "",
+		CredentialsKey: base64EncodedTicket,
+	}
+}
+
+// NewInitMessage Gets a new InitMessage struct
+func NewInitMessage(clientName string, authToken map[string]interface{}) InitMessage {
+	//authToken["user_agent"] = clientName
 
 	return InitMessage{
-		data: data,
+		data: authToken,
+		loc:  clientName,
 	}
 }
 
@@ -41,5 +64,5 @@ func (i InitMessage) Signature() int {
 
 // AllFields gets the fields to encode for the struct
 func (i InitMessage) AllFields() []interface{} {
-	return []interface{}{i.data}
+	return []interface{}{i.loc, i.data}
 }
