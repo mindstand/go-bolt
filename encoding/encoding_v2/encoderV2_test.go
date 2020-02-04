@@ -1,4 +1,4 @@
-package encoding_v1
+package encoding_v2
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ const (
 	maxKeySize = 10
 )
 
-func createNewTestEncoder() (EncoderV1, io.Reader) {
+func createNewTestEncoder() (EncoderV2, io.Reader) {
 	buf := bytes.NewBuffer([]byte{})
 	return NewEncoder(buf, maxBufSize), buf
 }
@@ -566,4 +566,16 @@ func TestEncodeStringSlice(t *testing.T) {
 	}
 
 	req.Nil(quick.CheckEqual(expected, result, nil))
+}
+
+// todo implement this test
+func TestEncodeTime(t *testing.T) {
+	t.Log("not implemented")
+	t.FailNow()
+}
+
+// todo implement this test
+func TestEncodeDuration(t *testing.T) {
+	t.Log("not implemented")
+	t.FailNow()
 }

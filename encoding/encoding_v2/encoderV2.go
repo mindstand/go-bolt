@@ -77,9 +77,6 @@ func (e EncoderV2) Write(p []byte) (n int, err error) {
 func (e EncoderV2) flush() error {
 	length := e.buf.Len()
 	if length > 0 {
-		if length == 23 {
-			length = 24
-		}
 		if err := binary.Write(e.w, binary.BigEndian, uint16(length)); err != nil {
 			return errors.Wrap(err, "An error occured writing length bytes during flush")
 		}
