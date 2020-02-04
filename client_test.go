@@ -9,7 +9,7 @@ import (
 func TestClient(t *testing.T) {
 	log.SetLevel("trace")
 	log.Info("opening client")
-	client, err := NewClient(WithBasicAuth("neo4j", "TZU6xiVZLbe5L5UmZaU5"), WithHostPort("0.0.0.0", 7687))
+	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687))
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
