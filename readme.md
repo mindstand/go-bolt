@@ -1,5 +1,4 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/go-bolt)](https://goreportcard.com/report/github.com/mindstand/go-bolt)
-[![Actions Status](https://github.com/mindstand/go-bolt/workflows/Go/badge.svg)](https://github.com/mindstand/go-bolt/actions)
 [![GoDoc](https://godoc.org/github.com/mindstand/go-bolt?status.svg)](https://godoc.org/github.com/mindstand/go-bolt)
 # Go-Bolt - GoLang Bolt Driver
 
