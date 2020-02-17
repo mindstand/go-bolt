@@ -110,6 +110,18 @@ func WithProtocolVersionNegotiation() Opt {
 	}
 }
 
+// requires protocol version
+func WithStrictProtocolVersion(version int) Opt {
+	return func(client *Client) error {
+		if client == nil {
+			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
+		}
+
+		client.serverVersion = version
+		return nil
+	}
+}
+
 // tells client what timeout it should use
 func WithTimeout(timeout time.Duration) Opt {
 	return func(client *Client) error {
@@ -121,53 +133,3 @@ func WithTimeout(timeout time.Duration) Opt {
 		return nil
 	}
 }
-
-// tells client which bolt version to use
-//func WithVersion(version int) Opt {
-//	return func(client *Client) error {
-//		if client == nil {
-//			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
-//		}
-//
-//		if client.negotiateVersion {
-//			return errors.Wrap(errors.ErrConfiguration, "can not set client version and negotiate version")
-//		}
-//
-//		if strings.Contains(version, "4") {
-//			client.serverVersion = make([]byte, 4)
-//			client.supportsV4 = true
-//		} else {
-//			client.serverVersion = make([]byte, 4)
-//		}
-//
-//		return nil
-//	}
-//}
-
-//func WithPool(max int) Opt {
-//	return func(client *Client) error {
-//		if client == nil {
-//			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
-//		}
-//
-//		if max < 1 {
-//			return errors.Wrap(errors.ErrConfiguration, "client pool has to have at least 1 connection")
-//		}
-//
-//		client.pooled = true
-//		client.maxConnections = max
-//		return nil
-//	}
-//}
-//
-//func WithV4CreateDBIfNotExists() Opt {
-//	return func(client *Client) error {
-//		if client == nil {
-//			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
-//		}
-//
-//		client.createDbIfNotExists = true
-//
-//		return nil
-//	}
-//}
