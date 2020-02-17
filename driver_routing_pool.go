@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const refreshInterval = time.Minute * 5
+const refreshInterval = time.Minute * 2
 
 type RoutingDriverPool struct {
 	internalPool routing.IRoutingPool
@@ -19,7 +19,10 @@ func newRoutingPool(client *Client, size int) (*RoutingDriverPool, error) {
 		return nil, errors.New("client can not be nil")
 	}
 
-	internalPool, err := routing.NewRoutingPool(client.connStr, size, refreshInterval)
+	userPart, _ := client.getUsernamePassword()
+	tlsPart, _ := client.getTlsPortion()
+
+	internalPool, err := routing.NewRoutingPool(client.connStr, size, refreshInterval, userPart, tlsPart)
 	if err != nil {
 		return nil, err
 	}

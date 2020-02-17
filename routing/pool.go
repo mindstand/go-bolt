@@ -12,6 +12,8 @@ import (
 )
 
 type routingPool struct {
+	userPassPart  string
+	tlsInfo       string
 	leaderConnStr string
 	// for general access
 	mutex sync.Mutex
@@ -44,7 +46,7 @@ type routingPool struct {
 	running         bool
 }
 
-func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Duration) (IRoutingPool, error) {
+func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Duration, authPart, tlsInfo string) (IRoutingPool, error) {
 	if leaderConnStr == "" {
 		return nil, errors.New("leaderConnStr can not be nil")
 	}
@@ -58,10 +60,12 @@ func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Dur
 	}
 
 	return &routingPool{
+		userPassPart:    authPart,
+		tlsInfo:         tlsInfo,
 		leaderConnStr:   leaderConnStr,
 		mutex:           sync.Mutex{},
 		updateMutex:     sync.Mutex{},
-		numConns:        0,
+		numConns:        numConns,
 		refreshInterval: refreshInterval,
 		routingHandler: &boltRoutingHandler{
 			Leaders:      []neoNodeConfig{},
@@ -85,6 +89,16 @@ func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Dur
 	}, nil
 }
 
+func (r *routingPool) addAuthInfoToConnStr(connStr string) string {
+
+	if r.userPassPart == "" && r.tlsInfo == "" {
+		return connStr
+	}
+
+	hostPort := strings.Replace(connStr, "bolt://", "", -1)
+	return fmt.Sprintf("bolt://%s@%s%s", r.userPassPart, hostPort, r.tlsInfo)
+}
+
 func (r *routingPool) Start() error {
 	if r.running {
 		return errors.New("pool is already running")
@@ -106,6 +120,8 @@ func (r *routingPool) Start() error {
 		return err
 	}
 
+	defer conn.Close()
+
 	err = r.routingHandler.refreshClusterInfo(conn)
 	if err != nil {
 		return err
@@ -120,6 +136,8 @@ func (r *routingPool) Start() error {
 		if err != nil {
 			return err
 		}
+
+		connStr = r.addAuthInfoToConnStr(connStr)
 
 		writeConn, err := r.newConnection(bolt_mode.WriteMode, connStr)
 		if err != nil {
@@ -138,12 +156,14 @@ func (r *routingPool) Start() error {
 		}
 	}
 
-	// create write conns
+	// create read conns
 	for i := 0; i < readConns; i++ {
 		connStr, err := r.nextReadConnectionString()
 		if err != nil {
 			return err
 		}
+
+		connStr = r.addAuthInfoToConnStr(connStr)
 
 		readConn, err := r.newConnection(bolt_mode.ReadMode, connStr)
 		if err != nil {
@@ -178,6 +198,21 @@ func (r *routingPool) Stop() error {
 
 	r.exitRefreshChan <- true
 	r.exitListenChan <- true
+
+	// close all connections
+	for _, conn := range r.borrowedConns {
+		log.Tracef("closing %v", conn)
+		if conn.Connection != nil {
+			conn.Connection.Close()
+		}
+	}
+	for _, conn := range r.heldConns {
+		log.Tracef("closing %v", conn)
+		if conn.Connection != nil {
+			conn.Connection.Close()
+		}
+	}
+
 	return nil
 }
 
@@ -191,6 +226,7 @@ func (r *routingPool) refreshWatcher() {
 		case <-timer:
 			var wg sync.WaitGroup
 			r.updateMutex.Lock()
+			wg.Add(1)
 			go r.refreshConnections(&wg)
 			wg.Wait()
 			r.updateMutex.Unlock()
@@ -207,6 +243,8 @@ func (r *routingPool) refreshConnections(wg *sync.WaitGroup) {
 		log.Error(err)
 		return
 	}
+
+	defer conn.Close()
 
 	err = r.routingHandler.refreshClusterInfo(conn)
 	if err != nil {
@@ -477,7 +515,7 @@ func (r *routingPool) BorrowRWConnection() (connection.IConnection, error) {
 
 	conn, err := r.writeStack.Pop()
 	if err != nil {
-		return nil, errors.New("error retrieving write connection")
+		return nil, err
 	}
 
 	connId := conn.Connection.GetConnectionId()

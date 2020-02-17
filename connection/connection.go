@@ -167,7 +167,6 @@ func (c *Connection) GetProtocolVersionBytes() []byte {
 
 // todo better errors (wrap stuff)
 func (c *Connection) createConnection() error {
-	log.Infof(c.hostPort)
 	var conn net.Conn
 	var err error
 	if c.useTLS {
@@ -272,7 +271,7 @@ func (c *Connection) initialize() error {
 		return err
 	}
 
-	log.Infof("Using protocol version %v", version)
+	log.Tracef("Using protocol version %v", version)
 
 	c.protocolVersion = version
 	c.protocolVersionBytes = versionBytes
@@ -357,7 +356,7 @@ func (c *Connection) QueryWithDb(query string, params QueryParams, db string) (I
 		return nil, err
 	}
 
-	return newQueryRows(c, success.Metadata), nil
+	return newQueryRows(c, success.Metadata, c.boltProtocol.GetResultAvailableAfterKey(), c.boltProtocol.GetResultConsumedAfterKey()), nil
 }
 
 func (c *Connection) runQuery(query string, params QueryParams, dbName string, inTx bool) (*messages.SuccessMessage, error) {
@@ -514,7 +513,7 @@ func (c *Connection) sendMessageConsume(message structures.Structure) (interface
 }
 
 func (c *Connection) consume() (interface{}, error) {
-	log.Info("Consuming response from bolt stream")
+	log.Trace("Consuming response from bolt stream")
 
 	respInt, err := c.boltProtocol.NewDecoder(c.readWrite).Decode()
 	if err != nil {
@@ -538,7 +537,7 @@ func (c *Connection) consume() (interface{}, error) {
 }
 
 func (c *Connection) ackFailure(failure messages.FailureMessage) error {
-	log.Infof("Acknowledging Failure: %#v", failure)
+	log.Tracef("Acknowledging Failure: %#v", failure)
 
 	ack := messages.NewAckFailureMessage()
 	err := c.boltProtocol.NewEncoder(c.readWrite, c.chunkSize).Encode(ack)
@@ -554,10 +553,10 @@ func (c *Connection) ackFailure(failure messages.FailureMessage) error {
 
 		switch resp := respInt.(type) {
 		case messages.IgnoredMessage:
-			log.Infof("Got ignored message when acking failure: %#v", resp)
+			log.Tracef("Got ignored message when acking failure: %#v", resp)
 			continue
 		case messages.SuccessMessage:
-			log.Infof("Got success message when acking failure: %#v", resp)
+			log.Tracef("Got success message when acking failure: %#v", resp)
 			return nil
 		case messages.FailureMessage:
 			log.Errorf("Got failure message when acking failure: %#v", resp)
@@ -570,7 +569,7 @@ func (c *Connection) ackFailure(failure messages.FailureMessage) error {
 }
 
 func (c *Connection) reset() error {
-	log.Info("Resetting session")
+	log.Trace("Resetting session")
 
 	reset := messages.NewResetMessage()
 	err := c.boltProtocol.NewEncoder(c.readWrite, c.chunkSize).Encode(reset)
@@ -586,10 +585,10 @@ func (c *Connection) reset() error {
 
 		switch resp := respInt.(type) {
 		case messages.IgnoredMessage:
-			log.Infof("Got ignored message when resetting session: %#v", resp)
+			log.Tracef("Got ignored message when resetting session: %#v", resp)
 			continue
 		case messages.SuccessMessage:
-			log.Infof("Got success message when resetting session: %#v", resp)
+			log.Tracef("Got success message when resetting session: %#v", resp)
 			return nil
 		case messages.FailureMessage:
 			log.Errorf("Got failure message when resetting session: %#v", resp)

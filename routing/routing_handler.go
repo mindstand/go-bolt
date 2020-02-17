@@ -54,23 +54,11 @@ func (c *boltRoutingHandler) getReadConnectionStrings() []string {
 		}
 	}
 
-	if c.Leaders != nil && len(c.Leaders) != 0 {
-		for _, node := range c.Leaders {
-			connStrs = append(connStrs, node.BoltString)
-		}
-	}
-
 	return connStrs
 }
 
 func (c *boltRoutingHandler) getWriteConnectionStrings() []string {
 	var connStrs []string
-
-	if c.Followers != nil && len(c.Followers) != 0 {
-		for _, node := range c.Followers {
-			connStrs = append(connStrs, node.BoltString)
-		}
-	}
 
 	if c.Leaders != nil && len(c.Leaders) != 0 {
 		for _, node := range c.Leaders {
@@ -83,6 +71,12 @@ func (c *boltRoutingHandler) getWriteConnectionStrings() []string {
 
 func (c *boltRoutingHandler) getReadOnlyConnectionString() []string {
 	var connStrs []string
+
+	if c.Followers != nil && len(c.Followers) != 0 {
+		for _, node := range c.Followers {
+			connStrs = append(connStrs, node.BoltString)
+		}
+	}
 
 	if c.ReadReplicas != nil && len(c.ReadReplicas) != 0 {
 		for _, node := range c.ReadReplicas {

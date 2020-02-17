@@ -15,7 +15,6 @@ func GetProtocol(version []byte) (IBoltProtocol, int, error) {
 		return nil, -1, errors.New("can not get protocol for nil or empty version")
 	}
 
-	// todo write this part out for all protocols
 	if bytes.Equal(version, protocol_v1.ProtocolVersionBytes) {
 		return &protocol_v1.BoltProtocolV1{}, protocol_v1.ProtocolVersion, nil
 	} else if bytes.Equal(version, protocol_v2.ProtocolVersionBytes) {

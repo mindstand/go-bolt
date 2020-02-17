@@ -43,7 +43,7 @@ func (t *boltTransaction) QueryWithDb(query string, params QueryParams, db strin
 		return nil, err
 	}
 
-	return newQueryRows(t.conn, success.Metadata), nil
+	return newQueryRows(t.conn, success.Metadata, t.conn.boltProtocol.GetResultAvailableAfterKey(), t.conn.boltProtocol.GetResultConsumedAfterKey()), nil
 }
 
 func (t *boltTransaction) Commit() error {
@@ -93,7 +93,7 @@ func (t *boltTransaction) Commit() error {
 		return errors.New("Unrecognized response type committing transaction: %#v", success)
 	}
 
-	log.Infof("Got success message committing transaction: %#v", success)
+	log.Tracef("Got success message committing transaction: %#v", success)
 
 	if !isCommitType {
 		pull, ok := pullSucc.(messages.SuccessMessage)
@@ -101,7 +101,7 @@ func (t *boltTransaction) Commit() error {
 			return errors.New("Unrecognized response type pulling transaction:  %#v", pull)
 		}
 
-		log.Infof("Got success message pulling transaction: %#v", pull)
+		log.Tracef("Got success message pulling transaction: %#v", pull)
 	}
 
 	t.conn.transaction = nil
@@ -154,7 +154,7 @@ func (t *boltTransaction) Rollback() error {
 		return errors.New("Unrecognized response type rolling back transaction: %#v", success)
 	}
 
-	log.Infof("Got success message rolling back transaction: %#v", success)
+	log.Tracef("Got success message rolling back transaction: %#v", success)
 
 	if !isRollbackType {
 		pull, ok := pullSucc.(messages.SuccessMessage)
@@ -162,7 +162,7 @@ func (t *boltTransaction) Rollback() error {
 			return errors.New("Unrecognized response type pulling transaction:  %#v", pull)
 		}
 
-		log.Infof("Got success message pulling transaction: %#v", pull)
+		log.Tracef("Got success message pulling transaction: %#v", pull)
 	}
 
 	t.conn.transaction = nil

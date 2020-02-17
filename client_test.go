@@ -9,14 +9,14 @@ import (
 func TestClient(t *testing.T) {
 	log.SetLevel("trace")
 	log.Info("opening client")
-	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687))
+	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687), WithRouting())
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
 	log.Infof("opening driver")
-	driver, err := client.NewDriver()
+	driver, err := client.NewDriverPool(55)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -30,9 +30,7 @@ func TestClient(t *testing.T) {
 	}
 
 	log.Infof("executing query")
-	rows, err := conn.Query("create (:TestNode{uuid:$id})", map[string]interface{}{
-		"id": "random_id",
-	})
+	rows, err := conn.Query("match (n) return n", nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -49,8 +47,34 @@ func TestClient(t *testing.T) {
 		t.FailNow()
 	}
 
-	log.Trace("closing connection")
-	err = conn.Close()
+	//req := require.New(t)
+	//
+	//conn, err = driver.Open(bolt_mode.WriteMode)
+	//req.Nil(err)
+	//req.NotNil(conn)
+	//
+	//tx, err := conn.Begin()
+	//req.Nil(err)
+	//req.NotNil(tx)
+	//
+	//res, err := tx.Exec("merge (:TestNode{num:$num})-[:TEST_EDGE]->(:TestNode{num:$num1})", map[string]interface{}{
+	//	"num": 1,
+	//	"num1": 2,
+	//})
+	//req.Nil(err)
+	//numCr, ok := res.GetNodesCreated()
+	//log.Info(numCr, ok)
+	//req.Nil(tx.Commit())
+	//
+	//log.Trace("closing connection")
+	//err = conn.Close()
+	//if err != nil {
+	//	t.Log(err)
+	//	t.FailNow()
+	//}
+
+	log.Tracef("closing driver")
+	err = driver.Close()
 	if err != nil {
 		t.Log(err)
 		t.FailNow()

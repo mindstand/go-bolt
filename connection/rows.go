@@ -8,22 +8,26 @@ import (
 )
 
 type boltRows struct {
-	metadata        map[string]interface{}
-	conn            *Connection
-	closed          bool
-	consumed        bool
-	finishedConsume bool
+	metadata                map[string]interface{}
+	conn                    *Connection
+	closed                  bool
+	consumed                bool
+	finishedConsume         bool
+	resultAvailableAfterKey string
+	resultConsumedAfterKey  string
 }
 
-func newRows(conn *Connection, metadata map[string]interface{}) *boltRows {
+func newRows(conn *Connection, metadata map[string]interface{}, resultAvailableAfterKey, resultConsumedAfterKey string) *boltRows {
 	return &boltRows{
-		conn:     conn,
-		metadata: metadata,
+		metadata:                metadata,
+		conn:                    conn,
+		resultAvailableAfterKey: resultAvailableAfterKey,
+		resultConsumedAfterKey:  resultConsumedAfterKey,
 	}
 }
 
-func newQueryRows(conn *Connection, metadata map[string]interface{}) *boltRows {
-	rows := newRows(conn, metadata)
+func newQueryRows(conn *Connection, metadata map[string]interface{}, resultAvailableAfterKey, resultConsumedAfterKey string) *boltRows {
+	rows := newRows(conn, metadata, resultAvailableAfterKey, resultConsumedAfterKey)
 	rows.consumed = true // Already consumed from pipeline with PULL_ALL
 	return rows
 }
@@ -68,7 +72,7 @@ func (b *boltRows) Close() error {
 
 		switch resp := respInt.(type) {
 		case messages.SuccessMessage:
-			log.Infof("Got success message: %#v", resp)
+			log.Tracef("Got success message: %#v", resp)
 		default:
 			return errors.New("Unrecognized response type discarding all rows: Value: %#v", resp)
 		}
@@ -100,23 +104,6 @@ func (b *boltRows) Next() ([]interface{}, map[string]interface{}, error) {
 		}
 	}
 
-	var after int64
-
-	// check that there's anything to actually consume
-	afterI, ok := b.metadata["result_available_after"]
-	if ok {
-		after, ok = afterI.(int64)
-		if !ok {
-			after = 0
-		}
-	}
-
-	// nothing to consume
-	if after <= 0 {
-		b.finishedConsume = true
-		return []interface{}{}, b.metadata, nil
-	}
-
 	respInt, err := b.conn.consume()
 	if err != nil {
 		return nil, nil, err
@@ -124,11 +111,11 @@ func (b *boltRows) Next() ([]interface{}, map[string]interface{}, error) {
 
 	switch resp := respInt.(type) {
 	case messages.SuccessMessage:
-		log.Infof("Got success message: %#v", resp)
+		log.Tracef("Got success message: %#v", resp)
 		b.finishedConsume = true
 		return nil, resp.Metadata, io.EOF
 	case messages.RecordMessage:
-		log.Infof("Got record message: %#v", resp)
+		log.Tracef("Got record message: %#v", resp)
 		return resp.Fields, nil, nil
 	default:
 		return nil, nil, errors.New("Unrecognized response type getting next runQuery row: %#v", resp)

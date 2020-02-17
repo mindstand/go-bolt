@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mindstand/go-bolt/errors"
 	"math"
+	"net/url"
 	"time"
 )
 
@@ -101,6 +102,49 @@ func NewClient(opts ...Opt) (IClient, error) {
 	}
 
 	return client, nil
+}
+
+func (c *Client) getTlsPortion() (string, error) {
+	if c.certFile != "" {
+		return fmt.Sprintf("?tls_cert_file=%s&tls_key_file=%s&tls_ca_cert_file=%s&tls_no_verify=%t",
+			c.certFile, c.keyFile, c.caCertFile, c.tlsNoVerify), nil
+	} else {
+		// parse connection string
+		u, err := url.Parse(c.connStr)
+		if err != nil {
+			return "", nil
+		}
+
+		certFile := u.Query().Get("tls_cert_file")
+		keyFile := u.Query().Get("tls_key_file")
+		caCertFile := u.Query().Get("tls_ca_cert_file")
+		tlsNoVerify := u.Query().Get("tls_no_verify")
+
+		if certFile == "" {
+			return "", nil
+		}
+
+		return fmt.Sprintf("?tls_cert_file=%s&tls_key_file=%s&tls_ca_cert_file=%s&tls_no_verify=%s",
+			certFile, keyFile, caCertFile, tlsNoVerify), nil
+	}
+}
+
+func (c *Client) getUsernamePassword() (string, error) {
+	u, err := url.Parse(c.connStr)
+	if err != nil {
+		return "", nil
+	}
+
+	if u.User.Username() == "" {
+		return "", nil
+	}
+
+	pwd, ok := u.User.Password()
+	if !ok {
+		pwd = ""
+	}
+
+	return fmt.Sprintf("%s:%s", u.User.Username(), pwd), nil
 }
 
 func (c *Client) NewDriver() (IDriver, error) {

@@ -11,6 +11,14 @@ import (
 
 type BoltProtocolV3 struct{}
 
+func (b *BoltProtocolV3) GetResultAvailableAfterKey() string {
+	return "t_first"
+}
+
+func (b *BoltProtocolV3) GetResultConsumedAfterKey() string {
+	return "t_last"
+}
+
 func (b *BoltProtocolV3) GetDiscardMessage(qid int64) structures.Structure {
 	panic("implement me")
 }

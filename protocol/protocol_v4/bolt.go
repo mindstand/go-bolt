@@ -11,6 +11,14 @@ import (
 
 type BoltProtocolV4 struct{}
 
+func (b *BoltProtocolV4) GetResultAvailableAfterKey() string {
+	return "t_first"
+}
+
+func (b *BoltProtocolV4) GetResultConsumedAfterKey() string {
+	return "t_last"
+}
+
 func (b *BoltProtocolV4) GetDiscardMessage(qid int64) structures.Structure {
 	return messages.NewDiscardMessage(messages.StreamUnlimited, qid)
 }

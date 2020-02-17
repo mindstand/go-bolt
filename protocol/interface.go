@@ -39,6 +39,9 @@ type IBoltProtocol interface {
 	// newer versions of bolt protocol allow for multi database support
 	SupportsMultiDatabase() bool
 
+	GetResultAvailableAfterKey() string
+	GetResultConsumedAfterKey() string
+
 	// marshall and unmarshal via the protocol
 	Marshal(v interface{}) ([]byte, error)
 	Unmarshal(b []byte) (interface{}, error)
