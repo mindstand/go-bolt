@@ -38,7 +38,7 @@ func driverCycle(driver IDriverPool, req *require.Assertions, iter int, wg *sync
 	log.Info("starting")
 	read := false
 	cycle := 0
-	for cycle != 15000{
+	for cycle != 15000 {
 		if read {
 			log.Infof("reading %v", iter)
 			conn, err := driver.Open(bolt_mode.ReadMode)
