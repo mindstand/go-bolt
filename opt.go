@@ -110,11 +110,45 @@ func WithProtocolVersionNegotiation() Opt {
 	}
 }
 
+func WithProtocolVersionGreaterThan(version int) Opt {
+	return func(client *Client) error {
+		if client == nil {
+			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
+		}
+
+		if version < 1 || version > 3 {
+			return errors.Wrap(errors.ErrConfiguration, "protocol greater than version must between 1 and 3")
+		}
+
+		client.protocolGreaterThan = version
+		return nil
+	}
+}
+
+func WithProtocolVersionLessThan(version int) Opt {
+	return func(client *Client) error {
+		if client == nil {
+			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
+		}
+
+		if version < 2 || version > 4 {
+			return errors.Wrap(errors.ErrConfiguration, "protocol greater than version must between 2 and 4")
+		}
+
+		client.protocolLessThan = version
+		return nil
+	}
+}
+
 // requires protocol version
 func WithStrictProtocolVersion(version int) Opt {
 	return func(client *Client) error {
 		if client == nil {
 			return errors.Wrap(errors.ErrConfiguration, "client can not be nil")
+		}
+
+		if version < 1 || version > 4 {
+			return errors.Wrap(errors.ErrConfiguration, "strict version must between 1 and 4")
 		}
 
 		client.serverVersion = version

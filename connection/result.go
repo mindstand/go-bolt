@@ -51,6 +51,9 @@ func (b *boltResult) GetNodesDeleted() (int64, bool) {
 	}
 
 	num, ok := stats["nodes-deleted"]
+	if !ok {
+		return -1, false
+	}
 	return num.(int64), ok
 }
 

@@ -43,22 +43,16 @@ func TestClient(t *testing.T) {
 
 	log.Infof("starting transaction")
 
-	//tx, err := conn.Begin()
-	//req.Nil(err)
-	//req.NotNil(tx)
-
-	_, err = conn.Exec("create (:TestNode)", nil)
+	tx, err := conn.Begin()
 	req.Nil(err)
-
-	_, err = conn.Exec("return 1;", nil)
-	req.Nil(err)
+	req.NotNil(tx)
 
 	log.Infof("dropping index")
-	_, err = conn.Exec("drop index on :TestNode(firstname)", nil)
+	_, err = tx.Exec("drop index on :TestNode(firstname)", nil)
 	req.Nil(err)
 
-	//log.Infof("committing tx")
-	//req.Nil(tx.Commit())
+	log.Infof("committing tx")
+	req.Nil(tx.Commit())
 
 	log.Infof("showing rows, %v", rows)
 	//all, m, err := rows.All()

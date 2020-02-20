@@ -10,6 +10,7 @@ import (
 )
 
 func TestStress(t *testing.T) {
+	t.Skip()
 	log.SetLevel("info")
 	req := require.New(t)
 
