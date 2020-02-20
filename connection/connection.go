@@ -75,6 +75,7 @@ type Connection struct {
 	// handlers
 	readWrite   *readWrite
 	transaction ITransaction
+	openRows    IRows
 
 	// connection stuff
 	timeout   time.Duration
@@ -334,7 +335,7 @@ func (c *Connection) ExecWithDb(query string, params QueryParams, db string) (IR
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
 	}
 
-	success, err := c.runQuery(query, params, db, false)
+	success, err := c.runQuery(query, params, db, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +352,7 @@ func (c *Connection) QueryWithDb(query string, params QueryParams, db string) (I
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
 	}
 
-	success, err := c.runQuery(query, params, db, false)
+	success, err := c.runQuery(query, params, db, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +360,7 @@ func (c *Connection) QueryWithDb(query string, params QueryParams, db string) (I
 	return newQueryRows(c, success.Metadata, c.boltProtocol.GetResultAvailableAfterKey(), c.boltProtocol.GetResultConsumedAfterKey()), nil
 }
 
-func (c *Connection) runQuery(query string, params QueryParams, dbName string, inTx bool) (*messages.SuccessMessage, error) {
+func (c *Connection) runQuery(query string, params QueryParams, dbName string, inTx, isExec bool) (*messages.SuccessMessage, error) {
 	if c.openQuery {
 		return nil, errors.New("runQuery already open")
 	}
@@ -386,6 +387,27 @@ func (c *Connection) runQuery(query string, params QueryParams, dbName string, i
 	success, ok := resp.(messages.SuccessMessage)
 	if !ok {
 		return nil, fmt.Errorf("unexpected response of type [%T], should be [messages.SuccessMessage]", resp)
+	}
+
+	// we dont care about what we're consuming next, so flush until we hit another success (this is identical to how rows are treated)
+	if isExec {
+		for {
+			_resp, err := c.consume()
+			if err != nil {
+				return nil, err
+			}
+
+			switch _resp.(type) {
+			case messages.SuccessMessage:
+				success, ok := _resp.(messages.SuccessMessage)
+				if !ok {
+					return nil, fmt.Errorf("unexpected response of type [%T], should be [messages.SuccessMessage]", resp)
+				}
+				return &success, nil
+			default:
+				continue
+			}
+		}
 	}
 
 	return &success, nil

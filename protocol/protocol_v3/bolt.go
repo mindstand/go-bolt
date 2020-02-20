@@ -20,11 +20,11 @@ func (b *BoltProtocolV3) GetResultConsumedAfterKey() string {
 }
 
 func (b *BoltProtocolV3) GetDiscardMessage(qid int64) structures.Structure {
-	panic("implement me")
+	return messages.NewDiscardMessage(0, qid)
 }
 
 func (b *BoltProtocolV3) GetDiscardAllMessage() structures.Structure {
-	panic("implement me")
+	return messages.NewDiscardAllMessage()
 }
 
 func (b *BoltProtocolV3) SupportsMultiDatabase() bool {

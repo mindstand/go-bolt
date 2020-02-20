@@ -3,12 +3,14 @@ package goBolt
 import (
 	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/log"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestClient(t *testing.T) {
 	log.SetLevel("trace")
 	log.Info("opening client")
+	req := require.New(t)
 	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687), WithRouting())
 	if err != nil {
 		t.Log(err)
@@ -16,7 +18,7 @@ func TestClient(t *testing.T) {
 	}
 
 	log.Infof("opening driver")
-	driver, err := client.NewDriverPool(55)
+	driver, err := client.NewDriverPool(2)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -29,26 +31,48 @@ func TestClient(t *testing.T) {
 		t.FailNow()
 	}
 
+	_, err = conn.Exec("create index on :TestNode(firstname)", nil)
+	req.Nil(err)
+
 	log.Infof("executing query")
-	rows, err := conn.Query("match (n) return n", nil)
+	rows, err := conn.Exec("call db.indexes", nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	log.Infof("showing rows")
-	all, m, err := rows.All()
-	log.Tracef("rows: %v, %v, %v", all, m, err)
+	log.Infof("starting transaction")
 
-	log.Trace("closing rows")
-	err = rows.Close()
-	if err != nil {
-		t.Log(err)
-		t.FailNow()
-	}
+	//tx, err := conn.Begin()
+	//req.Nil(err)
+	//req.NotNil(tx)
 
-	//req := require.New(t)
+	_, err = conn.Exec("create (:TestNode)", nil)
+	req.Nil(err)
+
+	_, err = conn.Exec("return 1;", nil)
+	req.Nil(err)
+
+	log.Infof("dropping index")
+	_, err = conn.Exec("drop index on :TestNode(firstname)", nil)
+	req.Nil(err)
+
+	//log.Infof("committing tx")
+	//req.Nil(tx.Commit())
+
+	log.Infof("showing rows, %v", rows)
+	//all, m, err := rows.All()
+	//log.Infof("rows: %v, %v, %v", all, m, err)
 	//
+	//log.Trace("closing rows")
+	//err = rows.Close()
+	//if err != nil {
+	//	t.Log(err)
+	//	t.FailNow()
+	//}
+
+	req.Nil(driver.Reclaim(conn))
+
 	//conn, err = driver.Open(bolt_mode.WriteMode)
 	//req.Nil(err)
 	//req.NotNil(conn)

@@ -21,7 +21,7 @@ func (t *boltTransaction) ExecWithDb(query string, params QueryParams, db string
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
 	}
 
-	success, err := t.conn.runQuery(query, params, db, true)
+	success, err := t.conn.runQuery(query, params, db, true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (t *boltTransaction) QueryWithDb(query string, params QueryParams, db strin
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
 	}
 
-	success, err := t.conn.runQuery(query, params, db, true)
+	success, err := t.conn.runQuery(query, params, db, true, false)
 	if err != nil {
 		return nil, err
 	}
