@@ -369,11 +369,13 @@ func (c *Connection) runQuery(query string, params QueryParams, dbName string, i
 		return nil, errors.New("connection already closed")
 	}
 
+	log.Tracef("running query")
 	err := c.sendMessage(c.boltProtocol.GetRunMessage(query, params, dbName, c.accessMode, !inTx))
 	if err != nil {
 		return nil, err
 	}
 
+	log.Tracef("running pull all")
 	err = c.sendMessage(c.boltProtocol.GetPullAllMessage())
 	if err != nil {
 		return nil, err
@@ -383,6 +385,8 @@ func (c *Connection) runQuery(query string, params QueryParams, dbName string, i
 	if err != nil {
 		return nil, err
 	}
+
+	log.Tracef("pull all response [%#v]", resp)
 
 	success, ok := resp.(messages.SuccessMessage)
 	if !ok {

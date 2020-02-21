@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/log"
 	"github.com/stretchr/testify/suite"
 	"os"
 	"strconv"
@@ -20,9 +21,9 @@ const (
 )
 
 func TestRunner(t *testing.T) {
-	//log.SetLevel("trace")
+	log.SetLevel("trace")
 	var connectionString, db string
-	var protoclVersion int
+	var protocolVersion int
 	var isCluster bool
 	if os.Getenv("TEST_ACTIONS") == "true" {
 		connectionString = os.Getenv("CONN_STR")
@@ -33,7 +34,7 @@ func TestRunner(t *testing.T) {
 			t.Logf("failed reading env vars, %s", err.Error())
 			t.FailNow()
 		}
-		protoclVersion = int(pvs64)
+		protocolVersion = int(pvs64)
 
 		isCluster, err = strconv.ParseBool(os.Getenv("IS_CLUSTER"))
 		if err != nil {
@@ -41,13 +42,15 @@ func TestRunner(t *testing.T) {
 			t.FailNow()
 		}
 	} else {
-		connectionString = "bolt+routing://neo4j:changeme@0.0.0.0:7687"
-		db = ""
-		protoclVersion = 3
+		//connectionString = "bolt+routing://neo4j:changeme@0.0.0.0:7687"
+		//db = ""
+		//protocolVersion = 3
+		connectionString = "bolt://neo4j:changeme@0.0.0.0:7687"
+		protocolVersion = 4
 	}
 
 	suite.Run(t, &BoltTestSuite{
-		protocolVersion:  protoclVersion,
+		protocolVersion:  protocolVersion,
 		isCluster:        isCluster,
 		connectionString: connectionString,
 		db:               db,
@@ -78,7 +81,7 @@ func (b *BoltTestSuite) SetupSuite() {
 
 	// create database to work out of
 	if b.protocolVersion == 4 {
-		b.db = "test_db"
+		b.db = "testdb"
 		var conn connection.IConnection
 		var err error
 		if b.isCluster {
@@ -94,10 +97,10 @@ func (b *BoltTestSuite) SetupSuite() {
 			b.Require().Nil(err)
 			b.Require().NotNil(conn)
 		}
-		_, err = conn.ExecWithDb("create database $db_name", map[string]interface{}{
-			"db_name": b.db,
-		}, "system")
+		_, err = conn.ExecWithDb(fmt.Sprintf("create or replace database %s;", b.db), map[string]interface{}{}, "system")
 		b.Require().Nil(err)
+		//_, err = conn.Exec(":use testdb", nil)
+		//b.Require().Nil(err)
 	} else {
 		b.db = ""
 	}
@@ -110,6 +113,10 @@ func (b *BoltTestSuite) TearDownSuite() {
 	b.Require().NotNil(conn)
 	_, err = conn.ExecWithDb("match (n) detach delete n", nil, b.db)
 	b.Require().Nil(err)
+	if b.db != "" {
+		_, err = conn.ExecWithDb(fmt.Sprintf("drop database %s;", b.db), nil, "system")
+		b.Require().Nil(err)
+	}
 	b.Require().Nil(b.driverPool.Reclaim(conn))
 	b.Require().NotNil(b.driverPool)
 	b.Require().Nil(b.driverPool.Close())
@@ -158,9 +165,12 @@ func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mo
 	b.Require().Nil(err)
 	b.Require().NotNil(rows)
 
-	all, _, err := rows.All()
+	all, m, err := rows.All()
 	b.Require().Nil(err)
 	b.Require().NotNil(all)
+	b.Require().NotNil(m)
+	b.Require().Len(all, 1)
+	b.Require().Len(all[0], 1)
 	b.Require().Equal([][]interface{}{{
 		int64(1),
 	}}[0][0], all[0][0])

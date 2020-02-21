@@ -66,7 +66,7 @@ func (b *BoltProtocolV4) GetRunMessage(query string, params map[string]interface
 }
 
 func (b *BoltProtocolV4) GetPullAllMessage() structures.Structure {
-	return messages.NewPull_PullAllMessage()
+	return messages.NewPullMessage(messages.StreamUnlimited, messages.AbsentQueryId)
 }
 
 func (b *BoltProtocolV4) Marshal(v interface{}) ([]byte, error) {

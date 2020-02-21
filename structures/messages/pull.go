@@ -4,8 +4,7 @@ const (
 	// PullMessageSignature is the signature byte for the PULL message
 	// PULL
 	// binary [0011 1111]
-	//PullMessageSignature = 0x3F
-	PullMessageSignature       = 0x2F
+	PullMessageSignature       = 0x3F
 	StreamUnlimited      int64 = -1
 	AbsentQueryId        int64 = -1
 )
@@ -30,9 +29,9 @@ func NewPullMessage(n, id int64) PullMessage {
 	}
 }
 
-func NewPull_PullAllMessage() PullMessage {
-	return NewPullMessage(StreamUnlimited, AbsentQueryId)
-}
+//func NewPull_PullAllMessage() PullMessage {
+//	return NewPullMessage(StreamUnlimited, AbsentQueryId)
+//}
 
 // Signature gets the signature byte for the struct
 func (i PullMessage) Signature() int {

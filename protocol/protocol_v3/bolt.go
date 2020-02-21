@@ -20,7 +20,7 @@ func (b *BoltProtocolV3) GetResultConsumedAfterKey() string {
 }
 
 func (b *BoltProtocolV3) GetDiscardMessage(qid int64) structures.Structure {
-	return messages.NewDiscardMessage(0, qid)
+	return messages.NewDiscardMessage(messages.StreamUnlimited, qid)
 }
 
 func (b *BoltProtocolV3) GetDiscardAllMessage() structures.Structure {
