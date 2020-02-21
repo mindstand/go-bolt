@@ -24,7 +24,8 @@ jobs:
       run: go build -v .
     - name: Run Unit Tests
       run: go test ./... -short
-      
+
+    # test 3 standalone
     - name: Start Neo4j 3.5 Standalone
       run: |
         docker-compose -f compose/docker-compose-3-5-single.yaml up -d
@@ -39,8 +40,10 @@ jobs:
         export IS_CLUSER=false
         go test ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Standalone
-      
-      
+      run: |
+        docker-compose -f compose/docker-compose-3-5-single.yaml down
+
+    # test v3 cluster
     - name: Start Neo4j 3.5 Cluster
       run: |
         docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
@@ -56,9 +59,9 @@ jobs:
         go test ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Cluster
       run: |
-        docker-compose -f .github/docker-compose.yaml down
-        
-        
+        docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
+
+    # test v4.0 standalone
     - name: Start Neo4j 4.0 Standalone
       run: |
         docker-compose -f compose/docker-compose-4-single.yaml up -d
@@ -73,6 +76,8 @@ jobs:
         export IS_CLUSER=false
         go test ./... -run Runner
     - name: Stop Neo4j Docker 4 Standalone
+      run: |
+        docker-compose -f compose/docker-compose-4-cluster.yaml up -d
 # TODO: enable once neo4j 4 casual cluster actually works
 #     - name: Start Neo4j 4 Cluster
 #       run: |
