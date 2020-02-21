@@ -38,7 +38,7 @@ jobs:
         export DB=
         export CONN_STR=bolt://neo4j@changeme:0.0.0.0:7687
         export PVS=3
-        export IS_CLUSER=false
+        export IS_CLUSTER=false
         go test ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Standalone
       run: |
@@ -57,7 +57,7 @@ jobs:
         export DB=
         export CONN_STR=bolt+routing://neo4j@changeme:0.0.0.0:7687
         export PVS=3
-        export IS_CLUSER=tue
+        export IS_CLUSTER=tue
         go test ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Cluster
       run: |
@@ -76,7 +76,7 @@ jobs:
         export DB=
         export CONN_STR=bolt://neo4j@changeme:0.0.0.0:7687
         export PVS=4
-        export IS_CLUSER=false
+        export IS_CLUSTER=false
         go test ./... -run Runner
     - name: Stop Neo4j Docker 4 Standalone
       run: |
@@ -93,6 +93,6 @@ jobs:
 #         export DB=
 #         export CONN_STR=bolt+routing://neo4j@changeme:0.0.0.0:7687
 #         export PVS=4
-#         export IS_CLUSER=tue
+#         export IS_CLUSTER=tue
 #         go test ./... -run Runner
 #     - name: Stop Neo4j Docker 4 Cluster
