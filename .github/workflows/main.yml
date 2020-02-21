@@ -45,24 +45,25 @@ jobs:
         docker-compose -f compose/docker-compose-3-5-single.yaml down
 
     # test v3 cluster
-    - name: Start Neo4j 3.5 Cluster
-      run: |
-        docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
-    - name: Wait for neo4j to be ready
-      run: |
-        echo "sleeping 30 seconds to let the cluster set itself up"
-        sleep 30
-    - name: Run Integration Test
-      run: |
-        export TEST_ACTIONS=true
-        export DB=
-        export CONN_STR="bolt+routing://neo4j:changeme@0.0.0.0:7687"
-        export PVS=3
-        export IS_CLUSTER=true
-        go test ./... -run Runner
-    - name: Stop Neo4j Docker 3.5 Cluster
-      run: |
-        docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
+# todo get cluster to run in actions
+#    - name: Start Neo4j 3.5 Cluster
+#      run: |
+#        docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
+#    - name: Wait for neo4j to be ready
+#      run: |
+#        echo "sleeping 30 seconds to let the cluster set itself up"
+#        sleep 30
+#    - name: Run Integration Test
+#      run: |
+#        export TEST_ACTIONS=true
+#        export DB=
+#        export CONN_STR="bolt+routing://neo4j:changeme@0.0.0.0:7687"
+#        export PVS=3
+#        export IS_CLUSTER=true
+#        go test ./... -run Runner
+#    - name: Stop Neo4j Docker 3.5 Cluster
+#      run: |
+#        docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
 
     # test v4.0 standalone
     - name: Start Neo4j 4.0 Standalone
