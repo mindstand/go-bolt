@@ -131,7 +131,7 @@ func (c *boltRoutingHandler) refreshClusterInfo(conn connection.IConnection) err
 		}
 
 		if boltStr == "" {
-			log.Trace("skipping id [%v] due to not having a bolt connection string", id)
+			log.Tracef("skipping id [%v] due to not having a bolt connection string", id)
 			continue
 		}
 
