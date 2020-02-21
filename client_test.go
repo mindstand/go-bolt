@@ -8,7 +8,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	if !testing.Short() {
+	if testing.Short() {
 		t.Skip()
 	}
 	log.SetLevel("trace")
