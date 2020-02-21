@@ -50,14 +50,15 @@ jobs:
         docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
     - name: Wait for neo4j to be ready
       run: |
-        sleep 6
+        echo "sleeping 30 seconds to let the cluster set itself up"
+        sleep 30
     - name: Run Integration Test
       run: |
         export TEST_ACTIONS=true
         export DB=
         export CONN_STR="bolt+routing://neo4j:changeme@0.0.0.0:7687"
         export PVS=3
-        export IS_CLUSTER=tue
+        export IS_CLUSTER=true
         go test ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Cluster
       run: |
