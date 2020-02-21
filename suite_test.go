@@ -30,6 +30,8 @@ func TestRunner(t *testing.T) {
 	var isCluster bool
 	if os.Getenv("TEST_ACTIONS") == "true" {
 		connectionString = os.Getenv("CONN_STR")
+		connectionString = strings.Replace(connectionString, "\"", "", -1)
+		connectionString = strings.TrimSpace(connectionString)
 		db = os.Getenv("DB")
 		pvs := os.Getenv("PVS")
 		pvs64, err := strconv.ParseInt(pvs, 10, 64)
@@ -44,7 +46,10 @@ func TestRunner(t *testing.T) {
 			t.Logf("failed reading env vars, %s", err.Error())
 			t.FailNow()
 		}
-		log.Infof(connectionString, db, protocolVersion, isCluster)
+		log.Info(connectionString)
+		log.Info(db)
+		log.Info(protocolVersion)
+		log.Info(isCluster)
 	} else {
 		//connectionString = "bolt+routing://neo4j:changeme@0.0.0.0:7687"
 		//db = ""

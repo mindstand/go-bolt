@@ -36,7 +36,7 @@ jobs:
       run: |
         export TEST_ACTIONS=true
         export DB=
-        export CONN_STR=bolt://neo4j@changeme:0.0.0.0:7687
+        export CONN_STR="bolt://neo4j@changeme:0.0.0.0:7687"
         export PVS=3
         export IS_CLUSTER=false
         go test ./... -run Runner
@@ -55,7 +55,7 @@ jobs:
       run: |
         export TEST_ACTIONS=true
         export DB=
-        export CONN_STR=bolt+routing://neo4j@changeme:0.0.0.0:7687
+        export CONN_STR="bolt+routing://neo4j@changeme:0.0.0.0:7687"
         export PVS=3
         export IS_CLUSTER=tue
         go test ./... -run Runner
@@ -74,7 +74,7 @@ jobs:
       run: |
         export TEST_ACTIONS=true
         export DB=
-        export CONN_STR=bolt://neo4j@changeme:0.0.0.0:7687
+        export CONN_STR="bolt://neo4j@changeme:0.0.0.0:7687"
         export PVS=4
         export IS_CLUSTER=false
         go test ./... -run Runner
