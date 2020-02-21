@@ -1,0 +1,90 @@
+name: GoBolt Test Suite
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+        if [ -f Gopkg.toml ]; then
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            dep ensure
+        fi
+    - name: Build
+      run: go build -v .
+    - name: Run Unit Tests
+      run: go test ./... -short
+      
+    - name: Start Neo4j 3.5 Standalone
+      run: |
+        docker-compose -f compose/docker-compose-3-5-single.yaml up -d
+    - name: Wait for neo4j to be ready
+      run: |
+        sleep 6
+    - name: Run Integration Test
+      run: |
+        export DB=
+        export CONN_STR=bolt://neo4j@changeme:0.0.0.0:7687
+        export PVS=3
+        export IS_CLUSER=false
+        go test ./... -run Runner
+    - name: Stop Neo4j Docker 3.5 Standalone
+      
+      
+    - name: Start Neo4j 3.5 Cluster
+      run: |
+        docker-compose -f compose/docker-compose-3-5-cluster.yaml up -d
+    - name: Wait for neo4j to be ready
+      run: |
+        sleep 6
+    - name: Run Integration Test
+      run: |
+        export DB=
+        export CONN_STR=bolt+routing://neo4j@changeme:0.0.0.0:7687
+        export PVS=3
+        export IS_CLUSER=tue
+        go test ./... -run Runner
+    - name: Stop Neo4j Docker 3.5 Cluster
+      run: |
+        docker-compose -f .github/docker-compose.yaml down
+        
+        
+    - name: Start Neo4j 4.0 Standalone
+      run: |
+        docker-compose -f compose/docker-compose-4-single.yaml up -d
+    - name: Wait for neo4j to be ready
+      run: |
+        sleep 6
+    - name: Run Integration Test
+      run: |
+        export DB=
+        export CONN_STR=bolt://neo4j@changeme:0.0.0.0:7687
+        export PVS=4
+        export IS_CLUSER=false
+        go test ./... -run Runner
+    - name: Stop Neo4j Docker 4 Standalone
+# TODO: enable once neo4j 4 casual cluster actually works
+#     - name: Start Neo4j 4 Cluster
+#       run: |
+#         docker-compose -f compose/docker-compose-4-cluster.yaml up -d
+#     - name: Wait for neo4j to be ready
+#       run: |
+#         sleep 6
+#     - name: Run Integration Test
+#       run: |
+#         export DB=
+#         export CONN_STR=bolt+routing://neo4j@changeme:0.0.0.0:7687
+#         export PVS=4
+#         export IS_CLUSER=tue
+#         go test ./... -run Runner
+#     - name: Stop Neo4j Docker 4 Cluster
