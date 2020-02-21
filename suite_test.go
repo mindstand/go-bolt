@@ -44,6 +44,7 @@ func TestRunner(t *testing.T) {
 			t.Logf("failed reading env vars, %s", err.Error())
 			t.FailNow()
 		}
+		log.Infof(connectionString, db, protocolVersion, isCluster)
 	} else {
 		//connectionString = "bolt+routing://neo4j:changeme@0.0.0.0:7687"
 		//db = ""
