@@ -39,7 +39,7 @@ jobs:
         export CONN_STR="bolt://neo4j:changeme@0.0.0.0:7687"
         export PVS=4
         export IS_CLUSTER=false
-        go test ./... -run Runner
+        go test -v ./... -run Runner
     - name: Stop Neo4j Docker 4 Standalone
       run: |
         docker-compose -f compose/docker-compose-4-cluster.yaml down --remove-orphans
@@ -58,7 +58,7 @@ jobs:
         export CONN_STR="bolt://neo4j:changeme@0.0.0.0:7687"
         export PVS=3
         export IS_CLUSTER=false
-        go test ./... -run Runner
+        go test -v ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Standalone
       run: |
         docker-compose -f compose/docker-compose-3-5-single.yaml down --remove-orphans
