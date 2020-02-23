@@ -303,6 +303,7 @@ func (c *Connection) sendInit(message structures.Structure) error {
 }
 
 func (c *Connection) ValidateOpen() bool {
+	log.Tracef("checking validate open")
 	if c.closed {
 		return false
 	}
@@ -311,20 +312,15 @@ func (c *Connection) ValidateOpen() bool {
 		return false
 	}
 
-	notify := make(chan error, 1)
-	buf := make([]byte, 1024)
-
-	_, err := c.readWrite.Read(buf)
+	one := make([]byte, 1)
+	err := c.conn.SetReadDeadline(time.Now())
 	if err != nil {
-		notify <- err
-	}
-
-
-	select {
-	case <-time.After(time.Millisecond * 1):
-		return true
-	case <- notify:
 		return false
+	}
+	if _, err := c.conn.Read(one); err == io.EOF {
+		return false
+	} else {
+		return true
 	}
 }
 
