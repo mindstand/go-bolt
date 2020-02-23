@@ -311,9 +311,21 @@ func (c *Connection) ValidateOpen() bool {
 		return false
 	}
 
+	notify := make(chan error, 1)
+	buf := make([]byte, 1024)
+
+	_, err := c.readWrite.Read(buf)
+	if err != nil {
+		notify <- err
+	}
 
 
-	return true
+	select {
+	case <-time.After(time.Millisecond * 1):
+		return true
+	case <- notify:
+		return false
+	}
 }
 
 // Sets the size of the chunks to write to the stream
