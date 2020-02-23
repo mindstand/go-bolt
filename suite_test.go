@@ -91,23 +91,16 @@ func (b *BoltTestSuite) SetupSuite() {
 	// create database to work out of
 	if b.protocolVersion == 4 {
 		b.db = "testdb"
-		var conn connection.IConnection
-		var err error
-		if b.isCluster {
-			conn, err = b.driverPool.Open(bolt_mode.WriteMode)
-			b.Require().Nil(err)
-			b.Require().NotNil(conn)
-		} else {
-			driver, err := b.client.NewDriver()
-			b.Require().Nil(err)
-			b.Require().NotNil(driver)
+		conn, err := b.driverPool.Open(bolt_mode.WriteMode)
+		b.Require().Nil(err)
+		b.Require().NotNil(conn)
 
-			conn, err = driver.Open(bolt_mode.WriteMode)
-			b.Require().Nil(err)
-			b.Require().NotNil(conn)
-		}
 		_, err = conn.ExecWithDb(fmt.Sprintf("create or replace database %s;", b.db), map[string]interface{}{}, "system")
 		b.Require().Nil(err)
+
+		err = b.driverPool.Reclaim(conn)
+		b.Require().Nil(err)
+
 		//_, err = conn.Exec(":use testdb", nil)
 		//b.Require().Nil(err)
 	} else {
