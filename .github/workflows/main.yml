@@ -42,7 +42,7 @@ jobs:
         go test ./... -run Runner
     - name: Stop Neo4j Docker 3.5 Standalone
       run: |
-        docker-compose -f compose/docker-compose-3-5-single.yaml down
+        docker-compose -f compose/docker-compose-3-5-single.yaml down --remove-orphans
 
     # test v3 cluster
 # todo get cluster to run in actions
@@ -82,7 +82,7 @@ jobs:
         go test ./... -run Runner
     - name: Stop Neo4j Docker 4 Standalone
       run: |
-        docker-compose -f compose/docker-compose-4-cluster.yaml up -d
+        docker-compose -f compose/docker-compose-4-cluster.yaml down --remove-orphans
 # TODO: enable once neo4j 4 casual cluster actually works
 #     - name: Start Neo4j 4 Cluster
 #       run: |
