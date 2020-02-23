@@ -311,7 +311,7 @@ func (c *Connection) ValidateOpen() bool {
 		return false
 	}
 
-	// todo more checks to validate that this connection still works
+
 
 	return true
 }

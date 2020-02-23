@@ -56,6 +56,7 @@ func TestRunner(t *testing.T) {
 		//protocolVersion = 3
 		connectionString = "bolt://neo4j:changeme@0.0.0.0:7687"
 		protocolVersion = 4
+		isCluster = false
 	}
 
 	suite.Run(t, &BoltTestSuite{
@@ -98,11 +99,7 @@ func (b *BoltTestSuite) SetupSuite() {
 		_, err = conn.ExecWithDb(fmt.Sprintf("create or replace database %s;", b.db), map[string]interface{}{}, "system")
 		b.Require().Nil(err)
 
-		err = b.driverPool.Reclaim(conn)
-		b.Require().Nil(err)
-
-		//_, err = conn.Exec(":use testdb", nil)
-		//b.Require().Nil(err)
+		b.Require().Nil(b.driverPool.Reclaim(conn))
 	} else {
 		b.db = ""
 	}
