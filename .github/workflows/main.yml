@@ -1,7 +1,6 @@
 name: GoBolt Test Suite
 on: [push]
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
