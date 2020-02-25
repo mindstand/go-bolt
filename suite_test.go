@@ -51,13 +51,12 @@ func TestRunner(t *testing.T) {
 		log.Info(protocolVersion)
 		log.Info(isCluster)
 	} else {
-		//connectionString = "bolt+routing://neo4j:changeme@0.0.0.0:7687"
-		//db = ""
-		//protocolVersion = 3
 		connectionString = "bolt://neo4j:changeme@0.0.0.0:7687"
 		protocolVersion = 3
 		isCluster = false
 	}
+
+	log.Infof("starting integration test")
 
 	suite.Run(t, &BoltTestSuite{
 		protocolVersion:  protocolVersion,
