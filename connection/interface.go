@@ -18,27 +18,6 @@ type IResult interface {
 	Metadata() map[string]interface{}
 }
 
-// IRows represents results of rows from the DB
-//
-// Row objects ARE NOT THREAD SAFE.
-// If you want to use multiple go routines with these objects,
-// you should use a internalDriver to create a new conn for each routine.
-type IRows interface {
-	// Columns Gets the names of the columns in the returned dataset
-	Columns() []string
-	// Metadata Gets all of the metadata returned from Neo on runQuery start
-	Metadata() map[string]interface{}
-	// Close the rows, flushing any existing datastream
-	Close() error
-	// NextNeo gets the next row result
-	// When the rows are completed, returns the success metadata
-	// and io.EOF
-	Next() ([]interface{}, map[string]interface{}, error)
-	// All gets all of the results from the row set. It's recommended to use NextNeo when
-	// there are a lot of rows
-	All() ([][]interface{}, map[string]interface{}, error)
-}
-
 type IQuery interface {
 	// ExecNeo executes a runQuery that returns no rows.
 	Exec(query string, params QueryParams) (IResult, error)
@@ -46,9 +25,9 @@ type IQuery interface {
 	ExecWithDb(query string, params QueryParams, db string) (IResult, error)
 
 	// QueryNeo executes a runQuery that returns data.
-	Query(query string, params QueryParams) (IRows, error)
+	Query(query string, params QueryParams) ([][]interface{}, IResult, error)
 
-	QueryWithDb(query string, params QueryParams, db string) (IRows, error)
+	QueryWithDb(query string, params QueryParams, db string) ([][]interface{}, IResult, error)
 }
 
 // ITransaction controls a transaction

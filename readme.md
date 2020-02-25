@@ -49,20 +49,10 @@ if err != nil {
     panic(err)
 }
 
-rows, err := conn.Query("create (:TestNode{uuid:$id})", map[string]interface{}{
-    "id": "random_id",
+all, m, err := conn.Query("create (:TestNode{uuid:$id})", map[string]interface{}{
+   "id": "random_id",
 })
-if err != nil {
-    panic(err)
-}
-
-all, m, err := rows.All()
 log.Tracef("rows: %v, %v, %v", all, m, err)
-
-err = rows.Close()
-if err != nil {
-    panic(err)
-}
 
 err = conn.Close()
 if err != nil {

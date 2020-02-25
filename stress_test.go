@@ -10,13 +10,11 @@ import (
 )
 
 func TestStress(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
+	t.Skip()
 	log.SetLevel("info")
 	req := require.New(t)
 
-	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687), WithRouting())
+	client, err := NewClient(WithBasicAuth("neo4j", "changeme"), WithHostPort("0.0.0.0", 7687))
 	req.Nil(err)
 	req.NotNil(client)
 
@@ -48,14 +46,10 @@ func driverCycle(driver IDriverPool, req *require.Assertions, iter int, wg *sync
 			req.Nil(err)
 			req.NotNil(conn)
 
-			rows, err := conn.Query("match (n) return n limit 50", nil)
-			req.Nil(err)
-			req.NotNil(rows)
-			res, meta, err := rows.All()
+			res, meta, err := conn.Query("match (n) return n limit 50", nil)
 			req.Nil(err)
 			req.NotNil(res)
 			req.NotNil(meta)
-			req.Nil(rows.Close())
 			req.Nil(driver.Reclaim(conn))
 			log.Infof("done reading %v", iter)
 		} else {

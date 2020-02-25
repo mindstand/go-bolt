@@ -21,29 +21,29 @@ func (t *boltTransaction) ExecWithDb(query string, params QueryParams, db string
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
 	}
 
-	success, err := t.conn.runQuery(query, params, db, true, true)
+	_, metadata, err := t.conn.runQuery(query, params, db, true)
 	if err != nil {
 		return nil, err
 	}
 
-	return newBoltResult(success.Metadata), nil
+	return newBoltResult(metadata), nil
 }
 
-func (t *boltTransaction) Query(query string, params QueryParams) (IRows, error) {
+func (t *boltTransaction) Query(query string, params QueryParams) ([][]interface{}, IResult, error) {
 	return t.QueryWithDb(query, params, "")
 }
 
-func (t *boltTransaction) QueryWithDb(query string, params QueryParams, db string) (IRows, error) {
+func (t *boltTransaction) QueryWithDb(query string, params QueryParams, db string) ([][]interface{}, IResult, error) {
 	if !t.conn.boltProtocol.SupportsMultiDatabase() && db != "" {
-		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
+		return nil, nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", t.conn.protocolVersion)
 	}
 
-	success, err := t.conn.runQuery(query, params, db, true, false)
+	rows, metadata, err := t.conn.runQuery(query, params, db, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newQueryRows(t.conn, success.Metadata, t.conn.boltProtocol.GetResultAvailableAfterKey(), t.conn.boltProtocol.GetResultConsumedAfterKey()), nil
+	return rows, newBoltResult(metadata), nil
 }
 
 func (t *boltTransaction) Commit() error {
@@ -85,8 +85,6 @@ func (t *boltTransaction) Commit() error {
 			return err
 		}
 	}
-
-	// todo if the message is a commit message, do not pull
 
 	success, ok := runSucc.(messages.SuccessMessage)
 	if !ok {

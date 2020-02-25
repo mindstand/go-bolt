@@ -92,22 +92,15 @@ func (c *boltRoutingHandler) refreshClusterInfo(conn connection.IConnection) err
 		return errors.New("bolt connection can not be nil")
 	}
 
-	var rowResp connection.IRows
+	var rows [][]interface{}
 	var err error
 
 	if conn.GetProtocolVersionNumber() == 4 {
-		rowResp, err = conn.QueryWithDb(clusterOverview, nil, neoV4SystemDb)
+		rows, _, err = conn.QueryWithDb(clusterOverview, nil, neoV4SystemDb)
 	} else {
-		rowResp, err = conn.Query(clusterOverview, nil)
+		rows, _, err = conn.Query(clusterOverview, nil)
 	}
 
-	if err != nil {
-		return err
-	}
-
-	defer rowResp.Close()
-
-	rows, _, err := rowResp.All()
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -75,7 +76,6 @@ type Connection struct {
 	// handlers
 	readWrite   *readWrite
 	transaction ITransaction
-	openRows    IRows
 
 	// connection stuff
 	timeout   time.Duration
@@ -83,6 +83,7 @@ type Connection struct {
 	conn      net.Conn
 	closed    bool
 	openQuery bool
+	mutex     sync.Mutex
 
 	// for pool tracking
 	id string
@@ -113,6 +114,7 @@ func newConnectionFromConnectionString(connStr string) (*Connection, error) {
 	connection := Connection{
 		timeout:   time.Second * time.Duration(60),
 		chunkSize: math.MaxUint16,
+		mutex:     sync.Mutex{},
 	}
 
 	connection.hostPort = _url.Host
@@ -343,86 +345,84 @@ func (c *Connection) ExecWithDb(query string, params QueryParams, db string) (IR
 		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
 	}
 
-	success, err := c.runQuery(query, params, db, false, true)
+	_, metadata, err := c.runQuery(query, params, db, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return newBoltResult(success.Metadata), nil
+	return newBoltResult(metadata), nil
 }
 
-func (c *Connection) Query(query string, params QueryParams) (IRows, error) {
+func (c *Connection) Query(query string, params QueryParams) ([][]interface{}, IResult, error) {
 	return c.QueryWithDb(query, params, "")
 }
 
-func (c *Connection) QueryWithDb(query string, params QueryParams, db string) (IRows, error) {
+func (c *Connection) QueryWithDb(query string, params QueryParams, db string) ([][]interface{}, IResult, error) {
 	if !c.boltProtocol.SupportsMultiDatabase() && db != "" {
-		return nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
+		return nil, nil, fmt.Errorf("bolt protocol version [%v] does not have multi database support", c.protocolVersion)
 	}
 
-	success, err := c.runQuery(query, params, db, false, false)
+	rows, metadata, err := c.runQuery(query, params, db, false)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newQueryRows(c, success.Metadata, c.boltProtocol.GetResultAvailableAfterKey(), c.boltProtocol.GetResultConsumedAfterKey()), nil
+	return rows, newBoltResult(metadata), nil
 }
 
-func (c *Connection) runQuery(query string, params QueryParams, dbName string, inTx, isExec bool) (*messages.SuccessMessage, error) {
+func (c *Connection) runQuery(query string, params QueryParams, dbName string, inTx bool) ([][]interface{}, map[string]interface{}, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if c.openQuery {
-		return nil, errors.New("runQuery already open")
+		return nil, nil, errors.New("runQuery already open")
 	}
 
 	if c.closed {
-		return nil, errors.New("connection already closed")
+		return nil, nil, errors.New("connection already closed")
 	}
 
 	log.Tracef("running query")
 	err := c.sendMessage(c.boltProtocol.GetRunMessage(query, params, dbName, c.accessMode, !inTx))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Tracef("running pull all")
 	err = c.sendMessage(c.boltProtocol.GetPullAllMessage())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resp, err := c.consume()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Tracef("pull all response [%#v]", resp)
 
-	success, ok := resp.(messages.SuccessMessage)
+	_, ok := resp.(messages.SuccessMessage)
 	if !ok {
-		return nil, fmt.Errorf("unexpected response of type [%T], should be [messages.SuccessMessage]", resp)
+		return nil, nil, fmt.Errorf("unexpected response of type [%T], should be [messages.SuccessMessage]", resp)
 	}
 
-	// we dont care about what we're consuming next, so flush until we hit another success (this is identical to how rows are treated)
-	if isExec {
-		for {
-			_resp, err := c.consume()
-			if err != nil {
-				return nil, err
-			}
+	output := [][]interface{}{}
+	for {
+		_resp, err := c.consume()
+		if err != nil {
+			return nil, nil, err
+		}
 
-			switch _resp.(type) {
-			case messages.SuccessMessage:
-				success, ok := _resp.(messages.SuccessMessage)
-				if !ok {
-					return nil, fmt.Errorf("unexpected response of type [%T], should be [messages.SuccessMessage]", resp)
-				}
-				return &success, nil
-			default:
-				continue
-			}
+		switch resp := _resp.(type) {
+		case messages.SuccessMessage:
+			log.Tracef("Got success message: %#v", resp)
+			return output, resp.Metadata, nil
+		case messages.RecordMessage:
+			log.Tracef("Got record message: %#v", resp)
+			output = append(output, resp.Fields)
+		default:
+			return nil, nil, errors.New("Unrecognized response type getting next runQuery row: %#v", resp)
 		}
 	}
-
-	return &success, nil
 }
 
 func (c *Connection) Close() error {

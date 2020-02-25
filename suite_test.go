@@ -55,7 +55,7 @@ func TestRunner(t *testing.T) {
 		//db = ""
 		//protocolVersion = 3
 		connectionString = "bolt://neo4j:changeme@0.0.0.0:7687"
-		protocolVersion = 4
+		protocolVersion = 3
 		isCluster = false
 	}
 
@@ -160,11 +160,7 @@ func (b *BoltTestSuite) TestPooledDriver() {
 func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mode.AccessMode, db, testFrom string) {
 	b.Require().NotNil(conn)
 	// test basic query
-	rows, err := conn.QueryWithDb("return 1;", nil, db)
-	b.Require().Nil(err)
-	b.Require().NotNil(rows)
-
-	all, m, err := rows.All()
+	all, m, err := conn.QueryWithDb("return 1;", nil, db)
 	b.Require().Nil(err)
 	b.Require().NotNil(all)
 	b.Require().NotNil(m)
@@ -173,7 +169,6 @@ func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mo
 	b.Require().Equal([][]interface{}{{
 		int64(1),
 	}}[0][0], all[0][0])
-	b.Require().Nil(rows.Close())
 
 	// test basic exec
 	res, err := conn.ExecWithDb("create (:TestNode{id:$id})", map[string]interface{}{
@@ -195,19 +190,17 @@ func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mo
 	qid := fmt.Sprintf("%s-%v", testFrom, 1)
 
 	// test create query
-	rows, err = conn.QueryWithDb("create (:TestNode{id:$id})", map[string]interface{}{
-		"id": qid,
-	}, db)
 	if mode == bolt_mode.WriteMode {
-		// test behavior if its allowed to do writes
-		b.Require().Nil(err)
-		b.Require().NotNil(rows)
-		data, _, err := rows.All()
+		data, _, err := conn.QueryWithDb("create (:TestNode{id:$id})", map[string]interface{}{
+			"id": qid,
+		}, db)
 		b.Require().Nil(err)
 		b.Require().NotNil(data)
-		b.Require().Nil(rows.Close())
 	} else {
 		// test behavior if not allowed to do writes
+		rows, _, err := conn.QueryWithDb("create (:TestNode{id:$id})", map[string]interface{}{
+			"id": qid,
+		}, db)
 		b.Require().NotNil(err)
 		b.Require().Nil(rows)
 	}
@@ -228,26 +221,18 @@ func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mo
 	b.Require().Equal(int64(1), nodesCr)
 
 	// test query
-	rows, err = conn.QueryWithDb("match (n) where n.id=$id return n", map[string]interface{}{
+	data, _, err := conn.QueryWithDb("match (n) where n.id=$id return n", map[string]interface{}{
 		"id": qid,
 	}, db)
 	b.Require().Nil(err)
-	b.Require().NotNil(rows)
-	data, _, err := rows.All()
-	b.Require().Nil(err)
 	b.Require().NotNil(data)
-	b.Require().Nil(rows.Close())
 
 	// test delete query
-	rows, err = conn.QueryWithDb("match (t:TestNode{id:$id}) delete t", map[string]interface{}{
+	data, _, err = conn.QueryWithDb("match (t:TestNode{id:$id}) delete t", map[string]interface{}{
 		"id": qid,
 	}, db)
 	b.Require().Nil(err)
-	b.Require().NotNil(rows)
-	data, _, err = rows.All()
-	b.Require().Nil(err)
 	b.Require().NotNil(data)
-	b.Require().Nil(rows.Close())
 
 	// setup index stuff
 	var indexCreateQuery, indexDeleteQuery string
@@ -284,15 +269,11 @@ func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mo
 	b.Require().True(ok)
 	b.Require().Equal(int64(1), nodesCr)
 
-	rows, err = tx.QueryWithDb("match (n) where n.id=$id return n", map[string]interface{}{
+	data, _, err = tx.QueryWithDb("match (n) where n.id=$id return n", map[string]interface{}{
 		"id": qid,
 	}, db)
 	b.Require().Nil(err)
-	b.Require().NotNil(rows)
-	data, _, err = rows.All()
-	b.Require().Nil(err)
 	b.Require().NotNil(data)
-	b.Require().Nil(rows.Close())
 
 	b.Require().Nil(tx.Commit())
 
