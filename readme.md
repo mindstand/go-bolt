@@ -1,5 +1,5 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/go-bolt)](https://goreportcard.com/report/github.com/mindstand/go-bolt)
-[![GoDoc](https://godoc.org/github.com/mindstand/go-bolt?status.svg)](https://godoc.org/github.com/mindstand/go-bolt)
+[![GoDoc](https://godoc.org/github.com/mindstand/go-bolt?status.svg)](https://pkg.go.dev/github.com/mindstand/go-bolt)
 # Go-Bolt - GoLang Bolt Driver
 
 Implements Neo4j Bolt Protocol Versions 1-4
