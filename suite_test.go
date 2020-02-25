@@ -52,7 +52,7 @@ func TestRunner(t *testing.T) {
 		log.Info(isCluster)
 	} else {
 		connectionString = "bolt://neo4j:changeme@0.0.0.0:7687"
-		protocolVersion = 3
+		protocolVersion = 4
 		isCluster = false
 	}
 
