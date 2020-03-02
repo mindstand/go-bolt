@@ -7,6 +7,7 @@ services:
 
   core1:
     image: neo4j:4.0-enterprise
+    hostname: core1
     networks:
       - bridge
     ports:
@@ -26,6 +27,7 @@ services:
 
   core2:
     image: neo4j:4.0-enterprise
+    hostname: core2
     networks:
       - bridge
     ports:
@@ -44,6 +46,7 @@ services:
 
   core3:
     image: neo4j:4.0.0-enterprise
+    hostname: core3
     networks:
       - bridge
     ports:
@@ -62,6 +65,7 @@ services:
 
   read1:
     image: neo4j:4.0-enterprise
+    hostname: read1
     networks:
       - bridge
     ports:

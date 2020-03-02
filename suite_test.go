@@ -53,7 +53,7 @@ func TestRunner(t *testing.T) {
 	} else {
 		connectionString = "bolt://neo4j:changeme@0.0.0.0:7687"
 		protocolVersion = 4
-		isCluster = false
+		isCluster = true
 	}
 
 	log.Infof("starting integration test")
@@ -90,15 +90,18 @@ func (b *BoltTestSuite) SetupSuite() {
 
 	// create database to work out of
 	if b.protocolVersion == 4 {
-		b.db = "testdb"
-		conn, err := b.driverPool.Open(bolt_mode.WriteMode)
-		b.Require().Nil(err)
-		b.Require().NotNil(conn)
-
-		_, err = conn.ExecWithDb(fmt.Sprintf("create or replace database %s;", b.db), map[string]interface{}{}, "system")
-		b.Require().Nil(err)
-
-		b.Require().Nil(b.driverPool.Reclaim(conn))
+		b.db = "neo4j"
+		//conn, err := b.driverPool.Open(bolt_mode.WriteMode)
+		//b.Require().Nil(err)
+		//b.Require().NotNil(conn)
+		//
+		//_, err = conn.ExecWithDb(fmt.Sprintf("create or replace database %s;", b.db), map[string]interface{}{}, "system")
+		//b.Require().Nil(err)
+		//
+		//_, err = conn.ExecWithDb(fmt.Sprintf("start database %s;", b.db), map[string]interface{}{}, "system")
+		//b.Require().Nil(err)
+		//
+		//b.Require().Nil(b.driverPool.Reclaim(conn))
 	} else {
 		b.db = ""
 	}

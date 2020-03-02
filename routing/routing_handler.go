@@ -110,7 +110,13 @@ func (c *boltRoutingHandler) refreshClusterInfo(conn connection.IConnection) err
 	var readReplicas []neoNodeConfig
 
 	for _, row := range rows {
-		id, addresses, role, groups, database, err := c.parseRow(row)
+		var id, role string
+		var addresses []string
+		if conn.GetProtocolVersionNumber() == 4 {
+			id, addresses, role, err = c.parseRowV4(row)
+		} else {
+			id, addresses, role, _, _, err = c.parseRowV3(row)
+		}
 		if err != nil {
 			return err
 		}
@@ -134,10 +140,10 @@ func (c *boltRoutingHandler) refreshClusterInfo(conn connection.IConnection) err
 			Id:         id,
 			BoltString: boltStr,
 			Addresses:  addresses,
-			Database:   database,
-			Groups:     groups,
-			Action:     action,
-			Type:       nodeType,
+			// Database:   database,
+			// Groups:     groups,
+			Action: action,
+			Type:   nodeType,
 		}
 
 		switch nodeType {
@@ -163,10 +169,47 @@ func (c *boltRoutingHandler) refreshClusterInfo(conn connection.IConnection) err
 }
 
 /*
+ [0]   [1]      [2]       [3]
+  id  address databases groups
+*/
+func (c *boltRoutingHandler) parseRowV4(row []interface{}) (id string, addresses []string, role string, err error) {
+	if len(row) != 4 {
+		return "", nil, "", fmt.Errorf("expected [4] rows but go [%v]", len(row))
+	}
+
+	id, ok := row[0].(string)
+	if !ok {
+		return "", nil, "", errors.New("unable to parse id into string")
+	}
+
+	addresses, err = c.convertInterfaceToStringArr(row[1])
+	if err != nil {
+		return "", nil, "", errors.New("unable to parse addresses into []string")
+	}
+
+	databsesMap, ok := row[2].(map[string]interface{})
+	if !ok {
+		return "", nil, "", errors.New("unable to parse addresses into map[string]interface{}")
+	}
+
+	roleInt, ok := databsesMap["system"]
+	if !ok {
+		return "", nil, "", errors.New("role not found")
+	}
+
+	role, ok = roleInt.(string)
+	if !ok {
+		return "", nil, "", fmt.Errorf("unable to convert role from [%T] to [string]")
+	}
+
+	return id, addresses, role, nil
+}
+
+/*
 	[0]   [1]   [2]   [3]     [4]
 	id  address role groups database
 */
-func (c *boltRoutingHandler) parseRow(row []interface{}) (id string, addresses []string, role string, groups []string, database string, err error) {
+func (c *boltRoutingHandler) parseRowV3(row []interface{}) (id string, addresses []string, role string, groups []string, database string, err error) {
 	//validate length is correct
 	rowLen := len(row)
 	if rowLen != 5 {
