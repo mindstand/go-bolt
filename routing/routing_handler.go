@@ -199,7 +199,7 @@ func (c *boltRoutingHandler) parseRowV4(row []interface{}) (id string, addresses
 
 	role, ok = roleInt.(string)
 	if !ok {
-		return "", nil, "", fmt.Errorf("unable to convert role from [%T] to [string]")
+		return "", nil, "", fmt.Errorf("unable to convert role from [%T] to [string]", roleInt)
 	}
 
 	return id, addresses, role, nil
