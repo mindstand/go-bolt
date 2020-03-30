@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/extemporalgenome/epochdate"
 	"github.com/mindstand/go-bolt/encoding"
 	"github.com/mindstand/go-bolt/encoding/encode_consts"
 	"github.com/mindstand/go-bolt/errors"
@@ -333,27 +332,23 @@ func (d DecoderV2) decodeStruct(buffer *bytes.Buffer, size int) (interface{}, er
 	}
 }
 
-// todo improve time functions
+// todo convert to gotime Date object
 func (d DecoderV2) decodeDate(buffer *bytes.Buffer) (time.Time, error) {
 	epochDayI, err := d.decode(buffer)
 	if err != nil {
 		return time.Time{}, err
 	}
 
+	// days since unix epoch
 	epochDay, ok := epochDayI.(int64)
 	if !ok {
 		return time.Time{}, errors.New("unable to cast to int64")
 	}
-
-	t, err := epochdate.NewFromUnix(epochDay)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return t.UTC(), nil
+	// add epochDays to unix epoch
+	return time.Unix(0, 0).UTC().AddDate(0, 0, int(epochDay)), nil
 }
 
-// todo improve time functions
+// todo convert to gotime Clock object
 func (d DecoderV2) decodeTime(buffer *bytes.Buffer) (time.Time, error) {
 	nanoOfDayLocalI, err := d.decode(buffer)
 	if err != nil {
@@ -375,10 +370,16 @@ func (d DecoderV2) decodeTime(buffer *bytes.Buffer) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", offsetI)
 	}
 
-	return time.Unix(nanoOfDayLocal, offset), nil
+	tzName := fmt.Sprintf("UTC%+d", int(offset)/(60*60)) // offset seconds to offset hours
+	tz := time.FixedZone(tzName, int(offset))            // create named time zone UTC+(offset in hours)
+
+	return time.Unix(0, nanoOfDayLocal).
+			In(tz).                                    // change timezone (sets offset)
+			Add(time.Duration(-offset) * time.Second), // add back reverse of offset
+		nil
 }
 
-// todo improve time functions
+// todo convert to gotime Local Clock object
 func (d DecoderV2) decodeLocalTime(buffer *bytes.Buffer) (time.Time, error) {
 	nanoOfDayLocalI, err := d.decode(buffer)
 	if err != nil {
@@ -386,40 +387,50 @@ func (d DecoderV2) decodeLocalTime(buffer *bytes.Buffer) (time.Time, error) {
 	}
 
 	nanoOfDayLocal, ok := nanoOfDayLocalI.(int64)
+	fmt.Println(nanoOfDayLocal)
 	if !ok {
 		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", nanoOfDayLocalI)
 	}
 
-	return time.Unix(nanoOfDayLocal, 0), nil
+	return time.Unix(0, nanoOfDayLocal).UTC(), nil
 }
 
 // todo improve time functions
 func (d DecoderV2) decodeLocalDateTime(buffer *bytes.Buffer) (time.Time, error) {
-	nanoOfDayLocalI, err := d.decode(buffer)
+	epochSecondsI, err := d.decode(buffer)
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	nanoOfDayLocal, ok := nanoOfDayLocalI.(int64)
+	epochSeconds, ok := epochSecondsI.(int64)
 	if !ok {
-		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", nanoOfDayLocalI)
+		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", epochSecondsI)
 	}
 
-	offsetI, err := d.decode(buffer)
+	nanoOfDayI, err := d.decode(buffer)
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	offset, ok := offsetI.(int64)
+	nanoOfDay, ok := nanoOfDayI.(int64)
 	if !ok {
-		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", offsetI)
+		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", nanoOfDayI)
 	}
 
-	return time.Unix(nanoOfDayLocal, offset), nil
+	return time.Unix(epochSeconds, nanoOfDay).UTC(), nil
 }
 
-// todo improve time functions
 func (d DecoderV2) decodeDateTimeWithZoneOffset(buffer *bytes.Buffer) (time.Time, error) {
+	epochSecondsLocalI, err := d.decode(buffer)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	epochSecondsLocal, ok := epochSecondsLocalI.(int64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("unable to cat [%T] to [int64]", epochSecondsLocalI)
+	}
+
 	nanoOfDayLocalI, err := d.decode(buffer)
 	if err != nil {
 		return time.Time{}, err
@@ -428,11 +439,6 @@ func (d DecoderV2) decodeDateTimeWithZoneOffset(buffer *bytes.Buffer) (time.Time
 	nanoOfDayLocal, ok := nanoOfDayLocalI.(int64)
 	if !ok {
 		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", nanoOfDayLocalI)
-	}
-
-	_, err = d.decode(buffer)
-	if err != nil {
-		return time.Time{}, err
 	}
 
 	offsetI, err := d.decode(buffer)
@@ -445,11 +451,27 @@ func (d DecoderV2) decodeDateTimeWithZoneOffset(buffer *bytes.Buffer) (time.Time
 		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", offsetI)
 	}
 
-	return time.Unix(nanoOfDayLocal, offset), nil
+	tzName := fmt.Sprintf("UTC%+d", int(offset)/(60*60)) // offset seconds to offset hours
+	tz := time.FixedZone(tzName, int(offset))            // create named time zone UTC+(offset in hours)
+
+	return time.Unix(epochSecondsLocal, nanoOfDayLocal).
+			In(tz).                                    // change timezone (sets offset)
+			Add(time.Duration(-offset) * time.Second), // add back reverse of offset
+		nil
 }
 
 // todo improve time functions
 func (d DecoderV2) decodeTimeWithZoneId(buffer *bytes.Buffer) (time.Time, error) {
+	epochSecondLocalI, err := d.decode(buffer)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	epochSecondLocal, ok := epochSecondLocalI.(int64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", epochSecondLocalI)
+	}
+
 	nanoOfDayLocalI, err := d.decode(buffer)
 	if err != nil {
 		return time.Time{}, err
@@ -458,16 +480,6 @@ func (d DecoderV2) decodeTimeWithZoneId(buffer *bytes.Buffer) (time.Time, error)
 	nanoOfDayLocal, ok := nanoOfDayLocalI.(int64)
 	if !ok {
 		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", nanoOfDayLocalI)
-	}
-
-	offsetI, err := d.decode(buffer)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	offset, ok := offsetI.(int64)
-	if !ok {
-		return time.Time{}, fmt.Errorf("unable to cast [%T] to [int64]", offsetI)
 	}
 
 	zoneIdI, err := d.decode(buffer)
@@ -480,7 +492,18 @@ func (d DecoderV2) decodeTimeWithZoneId(buffer *bytes.Buffer) (time.Time, error)
 		return time.Time{}, fmt.Errorf("unable to cast [%T] to [string]", zoneIdI)
 	}
 
-	return time.Unix(nanoOfDayLocal, 0).In(time.FixedZone(zoneId, int(offset))), nil
+	loc, err := time.LoadLocation(zoneId)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("unable to load zone info for [%v]", loc)
+	}
+
+	timeWithoutOffsetCorrection := time.Unix(epochSecondLocal, nanoOfDayLocal).In(loc)
+
+	_, offset := timeWithoutOffsetCorrection.Zone() // get second offset from zone
+
+	return timeWithoutOffsetCorrection.
+			Add(time.Duration(-offset) * time.Second), // correct for zone offset
+		nil
 }
 
 // todo improve time functions

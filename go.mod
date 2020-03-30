@@ -3,8 +3,8 @@ module github.com/mindstand/go-bolt
 go 1.13
 
 require (
-	github.com/extemporalgenome/epochdate v0.0.0-20190226042110-76033ea24270
+	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/jolestar/go-commons-pool v2.0.0+incompatible
-	github.com/jordwest/mock-conn v0.0.0-20180617021051-4896c6bd1641
+	github.com/mindstand/gotime v0.0.0-20200325222028-d3a78c8898a6
 	github.com/stretchr/testify v1.4.0
 )

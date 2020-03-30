@@ -187,26 +187,35 @@ func roundTime(input float64) int {
 	return int(i)
 }
 
+// encodeTime encodes native golang time.Time object as neo DateTime
 func (e EncoderV2) encodeTime(t time.Time) error {
-	epochSecondUtc := t.Unix()
-	nano := t.UnixNano()
+	_, offset := t.Zone()
 
-	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.LocalDateTimeStructSize)})
+	t = t.Add(time.Duration(offset) * time.Second) // add offset before converting to unix local
+	epochSeconds := t.Unix()
+	nano := t.Nanosecond()
+
+	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.DateTimeStructSize)})
 	if err != nil {
 		return err
 	}
 
-	_, err = e.Write([]byte{encode_consts.LocalDateTimeSignature})
+	_, err = e.Write([]byte{encode_consts.DateTimeWithZoneOffsetSignature})
 	if err != nil {
 		return err
 	}
 
-	err = e.encode(epochSecondUtc)
+	err = e.encode(epochSeconds)
 	if err != nil {
 		return err
 	}
 
-	return e.encode(nano)
+	err = e.encode(nano)
+	if err != nil {
+		return err
+	}
+
+	return e.encode(offset)
 }
 
 func (e EncoderV2) encodeDuration(d time.Duration) error {
