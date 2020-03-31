@@ -3,6 +3,7 @@ package encoding_v2
 import (
 	"encoding/binary"
 	"github.com/mindstand/go-bolt/encoding/encode_consts"
+	"github.com/mindstand/gotime"
 	"io"
 	"math"
 	"reflect"
@@ -149,6 +150,14 @@ func (e EncoderV2) encode(iVal interface{}) error {
 		err = e.encodeSlice(val)
 	case map[string]interface{}:
 		err = e.encodeMap(val)
+	case gotime.Date:
+		err = e.encodeDate(val)
+	case gotime.Clock:
+		err = e.encodeClock(val)
+	case gotime.LocalClock:
+		err = e.encodeLocalClock(val)
+	case gotime.LocalTime:
+		err = e.encodeLocalTime(val)
 	case time.Time:
 		err = e.encodeTime(val)
 	case time.Duration:
@@ -187,14 +196,80 @@ func roundTime(input float64) int {
 	return int(i)
 }
 
+func (e EncoderV2) encodeDate(d gotime.Date) error {
+	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.DateStructSize)})
+	if err != nil {
+		return err
+	}
+
+	_, err = e.Write([]byte{encode_consts.DateSignature})
+	if err != nil {
+		return err
+	}
+
+	return e.encode(int64(d.ToEpochDays()))
+}
+
+func (e EncoderV2) encodeClock(c gotime.Clock) error {
+	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.TimeStructSize)})
+	if err != nil {
+		return err
+	}
+
+	_, err = e.Write([]byte{encode_consts.TimeSignature})
+	if err != nil {
+		return err
+	}
+
+	err = e.encode(c.ToDayNano())
+	if err != nil {
+		return err
+	}
+
+	_, offset := c.GetTime().Zone()
+
+	return e.encode(offset)
+}
+
+func (e EncoderV2) encodeLocalClock(lc gotime.LocalClock) error {
+	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.LocalTimeStructSize)})
+	if err != nil {
+		return err
+	}
+
+	_, err = e.Write([]byte{encode_consts.LocalTimeSignature})
+	if err != nil {
+		return err
+	}
+
+	return e.encode(lc.ToDayNano())
+}
+
+func (e EncoderV2) encodeLocalTime(lt gotime.LocalTime) error {
+	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.LocalDateTimeStructSize)})
+	if err != nil {
+		return err
+	}
+
+	_, err = e.Write([]byte{encode_consts.LocalDateTimeSignature})
+	if err != nil {
+		return err
+	}
+
+	t := lt.GetTime()
+	_, offset := t.Zone()
+	t = t.Add(time.Duration(offset) * time.Second) // add offset before converting to unix local
+
+	err = e.encode(t.Unix())
+	if err != nil {
+		return err
+	}
+
+	return e.encode(t.Nanosecond())
+}
+
 // encodeTime encodes native golang time.Time object as neo DateTime
 func (e EncoderV2) encodeTime(t time.Time) error {
-	_, offset := t.Zone()
-
-	t = t.Add(time.Duration(offset) * time.Second) // add offset before converting to unix local
-	epochSeconds := t.Unix()
-	nano := t.Nanosecond()
-
 	_, err := e.Write([]byte{byte(encode_consts.TinyStructMarker | encode_consts.DateTimeStructSize)})
 	if err != nil {
 		return err
@@ -204,6 +279,12 @@ func (e EncoderV2) encodeTime(t time.Time) error {
 	if err != nil {
 		return err
 	}
+
+	_, offset := t.Zone()
+
+	t = t.Add(time.Duration(offset) * time.Second) // add offset before converting to unix local
+	epochSeconds := t.Unix()
+	nano := t.Nanosecond()
 
 	err = e.encode(epochSeconds)
 	if err != nil {

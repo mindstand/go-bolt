@@ -4,8 +4,8 @@ github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/jolestar/go-commons-pool v2.0.0+incompatible h1:uHn5uRKsLLQSf9f1J5QPY2xREWx/YH+e4bIIXcAuAaE=
 github.com/jolestar/go-commons-pool v2.0.0+incompatible/go.mod h1:ChJYIbIch0DMCSU6VU0t0xhPoWDR2mMFIQek3XWU0s8=
-github.com/mindstand/gotime v0.0.0-20200325222028-d3a78c8898a6 h1:7ds19kamiApHyloATdNtEChanC8JicbUbI7XKS2S7+Y=
-github.com/mindstand/gotime v0.0.0-20200325222028-d3a78c8898a6/go.mod h1:tjuCQXcJcbEuxBdqnrpD8J/trzgyekIYeGLH59l7oZI=
+github.com/mindstand/gotime v0.0.0-20200331222447-3e483f8772ad h1:IZBIhrFwHEaHaovDckibcb4BnmleV+bThhgqTdxdyt0=
+github.com/mindstand/gotime v0.0.0-20200331222447-3e483f8772ad/go.mod h1:tjuCQXcJcbEuxBdqnrpD8J/trzgyekIYeGLH59l7oZI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
