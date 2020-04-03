@@ -62,7 +62,7 @@ const (
 	TimeStructSize int  = 2
 
 	LocalTimeSignature  byte = 't'
-	LocalTimeStructSize int  = 2
+	LocalTimeStructSize int  = 1
 
 	LocalDateTimeSignature  byte = 'd'
 	LocalDateTimeStructSize int  = 2
