@@ -217,14 +217,14 @@ func (c *Client) NewDriver() (IDriver, error) {
 }
 
 func (c *Client) NewDriverPool(size int) (IDriverPool, error) {
-	driverPool, err := newDriverPool(c.connStr, size)
-	if err != nil {
-		return nil, err
-	}
-
 	if c.routing {
 		return newRoutingPool(c, size)
 	} else {
+		driverPool, err := newDriverPool(c.connStr, size)
+		if err != nil {
+			return nil, err
+		}
+
 		return &DriverPool{
 			internalPool: driverPool,
 		}, nil
