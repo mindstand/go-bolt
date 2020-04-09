@@ -3,6 +3,7 @@ package encoding_v2
 import (
 	"encoding/binary"
 	"github.com/mindstand/go-bolt/encoding/encode_consts"
+	"github.com/mindstand/go-bolt/log"
 	"github.com/mindstand/gotime"
 	"io"
 	"math"
@@ -78,6 +79,10 @@ func (e EncoderV2) Write(p []byte) (n int, err error) {
 func (e EncoderV2) flush() error {
 	length := e.buf.Len()
 	if length > 0 {
+		log.Trace("flushing bytes...")
+		log.TraceBytesFromBuf(e.buf)
+		log.Trace("end flush print bytes")
+
 		if err := binary.Write(e.w, binary.BigEndian, uint16(length)); err != nil {
 			return errors.Wrap(err, "An error occured writing length bytes during flush")
 		}

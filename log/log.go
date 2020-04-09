@@ -1,6 +1,8 @@
 package log
 
 import (
+	"bytes"
+	"fmt"
 	l "log"
 	"os"
 	"strings"
@@ -13,11 +15,13 @@ const (
 	// NoneLevel is no logging
 	NoneLevel Level = iota
 	// ErrorLevel is error logging
-	ErrorLevel Level = iota
+	ErrorLevel
 	// InfoLevel is info logging
-	InfoLevel Level = iota
+	InfoLevel
 	// TraceLevel is trace logging
-	TraceLevel Level = iota
+	TraceLevel
+	// TraceBytesLevel print bytes
+	TraceBytesLevel
 )
 
 var (
@@ -28,11 +32,15 @@ var (
 	InfoLog = l.New(os.Stderr, "[BOLT][INFO]", l.LstdFlags)
 	// TraceLog is the logger for trace logging. This can be manually overridden.
 	TraceLog = l.New(os.Stderr, "[BOLT][TRACE]", l.LstdFlags)
+	// TraceByteLog is the logger for trace byte logging. This can be manually overridden.
+	TraceBytesLog = l.New(os.Stdout, "[BOLT][BYTES]", l.LstdFlags)
 )
 
 // SetLevel sets the logging level of this package. levelStr should be one of "trace", "info", or "error
 func SetLevel(levelStr string) {
 	switch strings.ToLower(levelStr) {
+	case "trace-bytes":
+		level = TraceBytesLevel
 	case "trace":
 		level = TraceLevel
 	case "info":
@@ -47,6 +55,37 @@ func SetLevel(levelStr string) {
 // GetLevel gets the logging level
 func GetLevel() Level {
 	return level
+}
+
+func sprintByteHex(b []byte) string {
+	output := fmt.Sprintf("\n%s\n\t", string(b))
+	for i, b := range b {
+		output += fmt.Sprintf("%x", b)
+		if (i+1)%16 == 0 {
+			output += "\n\n\t"
+		} else if (i+1)%4 == 0 {
+			output += "  "
+		} else {
+			output += " "
+		}
+	}
+	output += "\n"
+
+	return output
+}
+
+func TraceBytesFromBuf(b *bytes.Buffer) {
+	if b == nil {
+		return
+	}
+
+	TraceBytes(b.Bytes())
+}
+
+func TraceBytes(b []byte) {
+	if level >= TraceBytesLevel {
+		TraceBytesLog.Print(sprintByteHex(b))
+	}
 }
 
 // Trace writes a trace log in the format of Println

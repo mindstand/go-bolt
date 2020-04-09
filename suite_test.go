@@ -24,7 +24,7 @@ func TestRunner(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	log.SetLevel("trace")
+	log.SetLevel("trace-bytes")
 	var connectionString, db string
 	var protocolVersion int
 	var isCluster bool
