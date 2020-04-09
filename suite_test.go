@@ -51,7 +51,7 @@ func TestRunner(t *testing.T) {
 		log.Info(protocolVersion)
 		log.Info(isCluster)
 	} else {
-		connectionString = "bolt+routing://neo4j:changeme@0.0.0.0:7687"
+		connectionString = "bolt://neo4j:password@0.0.0.0:7687"
 		protocolVersion = 3
 		isCluster = true
 	}
@@ -121,6 +121,55 @@ func (b *BoltTestSuite) TearDownSuite() {
 	b.Require().Nil(b.driverPool.Reclaim(conn))
 	b.Require().NotNil(b.driverPool)
 	b.Require().Nil(b.driverPool.Close())
+}
+
+func (b *BoltTestSuite) TestConnectionRecycleClose() {
+	poolSize := 5
+
+	driver, err := b.client.NewDriverPool(poolSize)
+	b.Require().Nil(err)
+	b.Require().NotNil(driver)
+
+	// should kill all of the pool
+	for i := 0; i < poolSize; i++ {
+		conn, err := driver.Open(bolt_mode.ReadMode)
+		b.Require().Nil(err)
+		b.Require().NotNil(conn)
+		b.Require().Nil(conn.Close())
+		b.Require().Nil(driver.Reclaim(conn))
+	}
+
+	conn, err := driver.Open(bolt_mode.ReadMode)
+	b.Require().Nil(err)
+	b.Require().NotNil(conn)
+
+	_, _, err = conn.Query("return 1", nil)
+	b.Require().Nil(err)
+}
+
+func (b *BoltTestSuite) TestConnectionRecycleBrokenConnection() {
+	poolSize := 5
+
+	driver, err := b.client.NewDriverPool(poolSize)
+	b.Require().Nil(err)
+	b.Require().NotNil(driver)
+
+	// should kill all of the pool
+	for i := 0; i < poolSize; i++ {
+		conn, err := driver.Open(bolt_mode.ReadMode)
+		b.Require().Nil(err)
+		b.Require().NotNil(conn)
+		_, _, err = conn.QueryWithDb("aasdfasdfasdfadfa", nil, b.db)
+		b.Require().NotNil(err)
+		b.Require().Nil(driver.Reclaim(conn))
+	}
+
+	conn, err := driver.Open(bolt_mode.ReadMode)
+	b.Require().Nil(err)
+	b.Require().NotNil(conn)
+
+	_, _, err = conn.QueryWithDb("return 1", nil, b.db)
+	b.Require().Nil(err)
 }
 
 func (b *BoltTestSuite) TestSingleDriver() {

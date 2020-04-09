@@ -2,7 +2,6 @@ package connection
 
 import (
 	"github.com/mindstand/go-bolt/structures"
-	"github.com/mindstand/go-bolt/structures/messages"
 	"time"
 )
 
@@ -51,7 +50,7 @@ type IConnection interface {
 	sendMessageConsume(message structures.Structure) (interface{}, error)
 	consume() (interface{}, error)
 
-	ackFailure(failure messages.FailureMessage) error
+	// ackFailure(failure messages.FailureMessage) error
 	reset() error
 
 	// closes connection

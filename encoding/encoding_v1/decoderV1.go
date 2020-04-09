@@ -307,8 +307,6 @@ func (d DecoderV1) decodeStruct(buffer *bytes.Buffer, size int) (interface{}, er
 		return d.decodeIgnoredMessage(buffer)
 	case messages.SuccessMessageSignature:
 		return d.decodeSuccessMessage(buffer)
-	case messages.AckFailureMessageSignature:
-		return d.decodeAckFailureMessage(buffer)
 	case messages.DiscardAllMessageSignature:
 		return d.decodeDiscardAllMessage(buffer)
 	case messages.PullAllMessageSignature:
@@ -512,10 +510,6 @@ func (d DecoderV1) decodeSuccessMessage(buffer *bytes.Buffer) (messages.SuccessM
 	}
 
 	return messages.NewSuccessMessage(metadata), nil
-}
-
-func (d DecoderV1) decodeAckFailureMessage(buffer *bytes.Buffer) (messages.AckFailureMessage, error) {
-	return messages.NewAckFailureMessage(), nil
 }
 
 func (d DecoderV1) decodeDiscardAllMessage(buffer *bytes.Buffer) (messages.DiscardAllMessage, error) {

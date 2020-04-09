@@ -560,46 +560,14 @@ func (c *Connection) consume() (interface{}, error) {
 
 	if failure, isFail := respInt.(messages.FailureMessage); isFail {
 		log.Errorf("Got failure message: %#v", failure)
-		err := c.ackFailure(failure)
+		err := c.reset()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(failure, err.Error())
 		}
 		return failure, errors.Wrap(failure, "Neo4J reported a failure for the runQuery")
 	}
 
 	return respInt, err
-}
-
-func (c *Connection) ackFailure(failure messages.FailureMessage) error {
-	log.Tracef("Acknowledging Failure: %#v", failure)
-
-	ack := messages.NewAckFailureMessage()
-	err := c.boltProtocol.NewEncoder(c.readWrite, c.chunkSize).Encode(ack)
-	if err != nil {
-		return errors.Wrap(err, "An error occurred encoding ack failure message")
-	}
-
-	for {
-		respInt, err := c.boltProtocol.NewDecoder(c.readWrite).Decode()
-		if err != nil {
-			return errors.Wrap(err, "An error occurred decoding ack failure message response")
-		}
-
-		switch resp := respInt.(type) {
-		case messages.IgnoredMessage:
-			log.Tracef("Got ignored message when acking failure: %#v", resp)
-			continue
-		case messages.SuccessMessage:
-			log.Tracef("Got success message when acking failure: %#v", resp)
-			return nil
-		case messages.FailureMessage:
-			log.Errorf("Got failure message when acking failure: %#v", resp)
-			return c.reset()
-		default:
-			log.Errorf("Got unrecognized response from acking failure: %#v", resp)
-			return c.Close()
-		}
-	}
 }
 
 func (c *Connection) reset() error {
