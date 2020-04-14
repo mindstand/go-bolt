@@ -11,14 +11,14 @@ type Queue struct {
 func NewQueue() *Queue {
 	return &Queue{
 		items: []*connectionPoolWrapper{},
-		lock: sync.RWMutex{},
+		lock:  sync.RWMutex{},
 	}
 }
 
-func NewQueueFromSlice(q ...*connectionPoolWrapper) *Queue{
+func NewQueueFromSlice(q ...*connectionPoolWrapper) *Queue {
 	return &Queue{
 		items: q,
-		lock: sync.RWMutex{},
+		lock:  sync.RWMutex{},
 	}
 }
 
