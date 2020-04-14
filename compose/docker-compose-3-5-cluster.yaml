@@ -28,6 +28,7 @@ services:
       - NEO4J_dbms_connector_http_listen__address=:7474
       - NEO4J_dbms_connector_https_listen__address=:6477
       - NEO4J_dbms_connector_bolt_listen__address=:7687
+      - NEO4J_dbms_connector_bolt_advertised__address=:7687
 
   core2:
     image: neo4j:3.5.17-enterprise
@@ -52,6 +53,7 @@ services:
       - NEO4J_dbms_connector_http_listen__address=:7475
       - NEO4J_dbms_connector_https_listen__address=:6478
       - NEO4J_dbms_connector_bolt_listen__address=:7688
+      - NEO4J_dbms_connector_bolt_advertised__address=:7688
 
   core3:
     image: neo4j:3.5.17-enterprise
@@ -76,6 +78,7 @@ services:
       - NEO4J_dbms_connector_http_listen__address=:7476
       - NEO4J_dbms_connector_https_listen__address=:6479
       - NEO4J_dbms_connector_bolt_listen__address=:7689
+      - NEO4J_dbms_connector_bolt_advertised__address=:7689
 
   read1:
     image: neo4j:3.5.17-enterprise
@@ -98,6 +101,7 @@ services:
       - NEO4J_dbms_connector_http_listen__address=:7477
       - NEO4J_dbms_connector_https_listen__address=:6480
       - NEO4J_dbms_connector_bolt_listen__address=:7690
+      - NEO4J_dbms_connector_bolt_advertised__address=:7690
 
   # This core demonstrates that additional instances can be added after the initial core is established (ie: this instance is nost listed within "initialDiscoveryMembers")
   core4:
@@ -122,3 +126,4 @@ services:
       - NEO4J_dbms_connector_http_listen__address=:7478
       - NEO4J_dbms_connector_https_listen__address=:6481
       - NEO4J_dbms_connector_bolt_listen__address=:7691
+      - NEO4J_dbms_connector_bolt_advertised__address=:7691

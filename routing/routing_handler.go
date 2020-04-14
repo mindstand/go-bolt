@@ -54,6 +54,12 @@ func (c *boltRoutingHandler) getReadConnectionStrings() []string {
 		}
 	}
 
+	if c.ReadReplicas != nil && len(c.ReadReplicas) != 0 {
+		for _, node := range c.ReadReplicas {
+			connStrs = append(connStrs, node.BoltString)
+		}
+	}
+
 	return connStrs
 }
 
@@ -276,7 +282,7 @@ func (c *boltRoutingHandler) infoFromRoleString(s string) (neoNodeType, bolt_mod
 	case "leader":
 		return Leader, bolt_mode.WriteMode
 	case "follower":
-		return Follower, bolt_mode.WriteMode
+		return Follower, bolt_mode.ReadMode
 	case "read_replica":
 		return ReadReplica, bolt_mode.ReadMode
 	default:

@@ -85,20 +85,20 @@ jobs:
         docker-compose -f compose/docker-compose-3-5-cluster.yaml down --remove-orphans
 
     # test on neo4j v4
-    - name: Start Neo4j 4 Cluster
-      run: |
-        docker-compose -f compose/docker-compose-4-cluster.yaml up -d
-    - name: Wait for neo4j to be ready
-      run: |
-        echo "sleeping 90 seconds to let the cluster set itself up"
-        sleep 90
-    - name: Run Integration Test
-      run: |
-        export DB=
-        export CONN_STR=bolt+routing://neo4j:changeme@0.0.0.0:7687
-        export PVS=4
-        export IS_CLUSTER=tue
-        go test ./... -run Runner
-    - name: Stop Neo4j Docker 4 Cluster
-      run: |
-        docker-compose -f compose/docker-compose-4-cluster.yaml down --remove-orphans
+#    - name: Start Neo4j 4 Cluster
+#      run: |
+#        docker-compose -f compose/docker-compose-4-cluster.yaml up -d
+#    - name: Wait for neo4j to be ready
+#      run: |
+#        echo "sleeping 90 seconds to let the cluster set itself up"
+#        sleep 90
+#    - name: Run Integration Test
+#      run: |
+#        export DB=
+#        export CONN_STR=bolt+routing://neo4j:changeme@0.0.0.0:7687
+#        export PVS=4
+#        export IS_CLUSTER=tue
+#        go test ./... -run Runner
+#    - name: Stop Neo4j Docker 4 Cluster
+#      run: |
+#        docker-compose -f compose/docker-compose-4-cluster.yaml down --remove-orphans

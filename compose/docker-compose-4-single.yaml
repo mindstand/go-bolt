@@ -5,7 +5,7 @@ networks:
 
 services:
   core:
-    image: neo4j:4.0-enterprise
+    image: neo4j:4.0.3-enterprise
     networks:
       - lan
     ports:

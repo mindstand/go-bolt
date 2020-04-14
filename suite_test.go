@@ -101,6 +101,8 @@ func (b *BoltTestSuite) SetupSuite() {
 		//_, err = conn.ExecWithDb(fmt.Sprintf("start database %s;", b.db), map[string]interface{}{}, "system")
 		//b.Require().Nil(err)
 		//
+		//<-time.After(15 * time.Second)
+		//
 		//b.Require().Nil(b.driverPool.Reclaim(conn))
 	} else {
 		b.db = ""
@@ -114,10 +116,10 @@ func (b *BoltTestSuite) TearDownSuite() {
 	b.Require().NotNil(conn)
 	_, err = conn.ExecWithDb("match (n) detach delete n", nil, b.db)
 	b.Require().Nil(err)
-	if b.db != "" {
-		_, err = conn.ExecWithDb(fmt.Sprintf("drop database %s;", b.db), nil, "system")
-		b.Require().Nil(err)
-	}
+	//if b.db != "" {
+	//	_, err = conn.ExecWithDb(fmt.Sprintf("drop database %s;", b.db), nil, "system")
+	//	b.Require().Nil(err)
+	//}
 	b.Require().Nil(b.driverPool.Reclaim(conn))
 	b.Require().NotNil(b.driverPool)
 	b.Require().Nil(b.driverPool.Close())
