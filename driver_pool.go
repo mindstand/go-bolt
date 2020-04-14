@@ -22,7 +22,7 @@ func newDriverPool(connStr string, maxConns int) (*driverPool, error) {
 		LIFO:                     true,
 		MaxTotal:                 maxConns,
 		MaxIdle:                  maxConns,
-		MinIdle:                  0,
+		MinIdle:                  5,
 		TestOnCreate:             true,
 		TestOnBorrow:             true,
 		TestOnReturn:             true,

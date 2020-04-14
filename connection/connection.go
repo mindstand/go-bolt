@@ -305,7 +305,7 @@ func (c *Connection) sendInit(message structures.Structure) error {
 }
 
 func (c *Connection) ValidateOpen() bool {
-	log.Tracef("checking validate open")
+	//log.Tracef("checking validate open")
 	if c.closed {
 		return false
 	}
@@ -427,7 +427,7 @@ func (c *Connection) runQuery(query string, params QueryParams, dbName string, i
 
 func (c *Connection) Close() error {
 	if c.closed {
-		return errors.New("connection is ready closed")
+		return errors.ErrClosed
 	}
 
 	if c.transaction != nil {

@@ -1,13 +1,14 @@
 package routing
 
 import (
+	"errors"
 	"fmt"
 	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/mindstand/go-bolt/connection"
-	"github.com/mindstand/go-bolt/errors"
 	"github.com/mindstand/go-bolt/log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,35 +16,38 @@ type routingPool struct {
 	userPassPart  string
 	tlsInfo       string
 	leaderConnStr string
-	// for general access
-	mutex sync.Mutex
-	// for updating stuff
-	updateMutex sync.Mutex
 
-	numConns int
+	// access mutex
+	mutex sync.RWMutex
 
+	// running
+	running *int32
+	// is updating
+	updating *int32
+
+	// configuration
+	totalConns      int
+	minWriteIdle    int
+	maxWriteIdle    int
+	minReadIdle     int
+	maxReadIdle     int
 	refreshInterval time.Duration
 	routingHandler  *boltRoutingHandler
 
-	readStrings []string
-	readI       int
-	readMutex   sync.Mutex
-
-	rwStrings []string
-	rwI       int
-	rwMutex   sync.RWMutex
-
+	// lookups
 	connStrLookup map[string][]*connectionPoolWrapper
-
 	borrowedConns map[string]*connectionPoolWrapper
 	heldConns     map[string]*connectionPoolWrapper
 
-	writeStack *connectionStack
-	readStack  *connectionStack
+	// write stuff
+	rwStrings  []string
+	rwIndex    int
+	writeQueue *Queue
 
-	exitRefreshChan chan bool
-	exitListenChan  chan bool
-	running         bool
+	// read stuff
+	readStrings []string
+	readIndex   int
+	readQueue   *Queue
 }
 
 func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Duration, authPart, tlsInfo string) (IRoutingPool, error) {
@@ -59,295 +63,103 @@ func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Dur
 		return nil, fmt.Errorf("number of connections must be greater than 1, provided [%v]", numConns)
 	}
 
+	run := int32(0)
+	update := int32(0)
+
 	return &routingPool{
 		userPassPart:    authPart,
 		tlsInfo:         tlsInfo,
 		leaderConnStr:   leaderConnStr,
-		mutex:           sync.Mutex{},
-		updateMutex:     sync.Mutex{},
-		numConns:        numConns,
+		mutex:           sync.RWMutex{},
+		running:         &run,
+		updating:        &update,
+		totalConns:      numConns,
+		minWriteIdle:    0,
+		maxWriteIdle:    0,
+		minReadIdle:     0,
+		maxReadIdle:     0,
 		refreshInterval: refreshInterval,
 		routingHandler: &boltRoutingHandler{
 			Leaders:      []neoNodeConfig{},
 			Followers:    []neoNodeConfig{},
 			ReadReplicas: []neoNodeConfig{},
 		},
-		readStrings:     []string{},
-		readI:           0,
-		readMutex:       sync.Mutex{},
-		rwStrings:       []string{},
-		rwI:             0,
-		rwMutex:         sync.RWMutex{},
-		connStrLookup:   map[string][]*connectionPoolWrapper{},
-		borrowedConns:   map[string]*connectionPoolWrapper{},
-		heldConns:       map[string]*connectionPoolWrapper{},
-		writeStack:      newStack(),
-		readStack:       newStack(),
-		exitRefreshChan: make(chan bool, 1),
-		exitListenChan:  make(chan bool, 1),
-		running:         false,
+		connStrLookup: map[string][]*connectionPoolWrapper{},
+		borrowedConns: map[string]*connectionPoolWrapper{},
+		heldConns:     map[string]*connectionPoolWrapper{},
+		rwStrings:     []string{},
+		rwIndex:       0,
+		writeQueue:    NewQueue(),
+		readStrings:   []string{},
+		readIndex:     0,
+		readQueue:     NewQueue(),
 	}, nil
 }
 
-func (r *routingPool) addAuthInfoToConnStr(connStr string) string {
-
-	if r.userPassPart == "" && r.tlsInfo == "" {
-		return connStr
+func (r *routingPool) removeConn(conn *connectionPoolWrapper) error {
+	if conn == nil || conn.Connection == nil {
+		return errors.New("invalid connection, can not be nil")
 	}
 
-	hostPort := strings.Replace(connStr, "bolt://", "", -1)
-	return fmt.Sprintf("bolt://%s@%s%s", r.userPassPart, hostPort, r.tlsInfo)
-}
-
-func (r *routingPool) Start() error {
-	if r.running {
-		return errors.New("pool is already running")
-	}
-
-	writeConns := 0
-	readConns := 0
-	if r.numConns%2 == 0 {
-		writeConns = r.numConns / 2
-		readConns = r.numConns / 2
-	} else {
-		// write would have one more if the number of connections is odd
-		writeConns = ((r.numConns - 1) / 2) + 1
-		readConns = (r.numConns - 1) / 2
-	}
-
-	conn, err := connection.CreateBoltConn(r.leaderConnStr)
-	if err != nil {
-		return err
-	}
-
-	defer conn.Close()
-
-	err = r.routingHandler.refreshClusterInfo(conn)
-	if err != nil {
-		return err
-	}
-
-	r.rwStrings = r.routingHandler.getWriteConnectionStrings()
-	r.readStrings = r.routingHandler.getReadConnectionStrings()
-
-	// create write conns
-	for i := 0; i < writeConns; i++ {
-		connStr, err := r.nextWriteConnectionString()
-		if err != nil {
-			return err
-		}
-
-		connStr = r.addAuthInfoToConnStr(connStr)
-
-		writeConn, err := r.newConnection(bolt_mode.WriteMode, connStr)
-		if err != nil {
-			return err
-		}
-
-		if _, ok := r.connStrLookup[connStr]; !ok {
-			r.connStrLookup[connStr] = []*connectionPoolWrapper{writeConn}
-		} else {
-			r.connStrLookup[connStr] = append(r.connStrLookup[connStr], writeConn)
-		}
-
-		err = r.writeStack.Push(writeConn)
+	if !conn.Connection.ValidateOpen() {
+		err := conn.Connection.Close()
 		if err != nil {
 			return err
 		}
 	}
 
-	// create read conns
-	for i := 0; i < readConns; i++ {
-		connStr, err := r.nextReadConnectionString()
-		if err != nil {
-			return err
-		}
-
-		connStr = r.addAuthInfoToConnStr(connStr)
-
-		readConn, err := r.newConnection(bolt_mode.ReadMode, connStr)
-		if err != nil {
-			return err
-		}
-
-		if _, ok := r.connStrLookup[connStr]; !ok {
-			r.connStrLookup[connStr] = []*connectionPoolWrapper{readConn}
-		} else {
-			r.connStrLookup[connStr] = append(r.connStrLookup[connStr], readConn)
-		}
-
-		err = r.readStack.Push(readConn)
-		if err != nil {
-			return err
-		}
-	}
-
-	// start refresh watcher
-	go r.refreshWatcher()
-	// start delete listener
-	go r.deletedConnectionsHandler()
-
-	r.running = true
+	delete(r.heldConns, conn.Connection.GetConnectionId())
 	return nil
 }
 
-func (r *routingPool) Stop() error {
-	if !r.running {
-		return errors.New("routing pool not running")
-	}
-
-	r.exitRefreshChan <- true
-	r.exitListenChan <- true
-
-	// close all connections
-	for _, conn := range r.borrowedConns {
-		log.Tracef("closing %v", conn)
-		if conn.Connection != nil {
-			conn.Connection.Close()
-		}
-	}
-	for _, conn := range r.heldConns {
-		log.Tracef("closing %v", conn)
-		if conn.Connection != nil {
-			conn.Connection.Close()
-		}
-	}
-
-	return nil
-}
-
-func (r *routingPool) refreshWatcher() {
-	for {
-		timer := time.After(r.refreshInterval)
-
-		select {
-		case <-r.exitRefreshChan:
-			return
-		case <-timer:
-			var wg sync.WaitGroup
-			r.updateMutex.Lock()
-			wg.Add(1)
-			go r.refreshConnections(&wg)
-			wg.Wait()
-			r.updateMutex.Unlock()
-		}
-	}
-}
-
-// uses routing handler to check if any connections should be dumped
-func (r *routingPool) refreshConnections(wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	conn, err := connection.CreateBoltConn(r.leaderConnStr)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	defer conn.Close()
-
-	err = r.routingHandler.refreshClusterInfo(conn)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	newWriteStrs := r.routingHandler.getWriteConnectionStrings()
-	newReadStrs := r.routingHandler.getReadConnectionStrings()
-
-	var deadStrs, actualWrites, actualReads []string
-
-	// check for dead strings
-	for _, curStr := range r.rwStrings {
-		// string is not found, so it must be dead
-		if !stringSliceContains(newWriteStrs, curStr) {
-			deadStrs = append(deadStrs, curStr)
-		} else {
-			actualWrites = append(actualWrites, curStr)
-		}
-	}
-
-	for _, curStr := range r.readStrings {
-		// string is not found, so it must be dead
-		if !stringSliceContains(newReadStrs, curStr) {
-			deadStrs = append(deadStrs, curStr)
-		} else {
-			actualReads = append(actualReads, curStr)
-		}
-	}
-
-	// add anything new
-	for _, newStr := range newWriteStrs {
-		if !stringSliceContains(actualWrites, newStr) {
-			actualWrites = append(actualWrites, newStr)
-		}
-	}
-
-	for _, newStr := range newReadStrs {
-		if !stringSliceContains(actualReads, newStr) {
-			actualReads = append(actualReads, newStr)
-		}
-	}
-
-	// mark them for deletion, system will rebalance elsewhere
-	if len(deadStrs) != 0 {
-		for _, str := range deadStrs {
-			conns, ok := r.connStrLookup[str]
-			if !ok || conns == nil || len(conns) == 0 {
-				continue
-			}
-
-			for _, markedConn := range conns {
-				if markedConn == nil {
-					continue
-				}
-
-				markedConn.markForDeletion = true
-			}
-		}
-
-		// tell the stacks to delete it
-		r.writeStack.PruneMarkedConnections()
-		r.readStack.PruneMarkedConnections()
-	}
-}
-
-func (r *routingPool) nextReadConnectionString() (string, error) {
-	r.readMutex.Lock()
-	defer r.readMutex.Unlock()
-
-	if r.readStrings == nil || len(r.readStrings) == 0 {
-		return "", errors.New("no connection strings")
-	}
-
-	// increment r.readI
-	r.readI++
-
-	//
-	if r.readI == len(r.readStrings) {
-		r.readI = 0
-	}
-
-	return r.readStrings[r.readI], nil
-}
-
-func (r *routingPool) nextWriteConnectionString() (string, error) {
-	r.rwMutex.Lock()
-	defer r.rwMutex.Unlock()
-
+func (r *routingPool) addWriteConn() error {
+	// validate we have connection strings
 	if r.rwStrings == nil || len(r.rwStrings) == 0 {
-		return "", errors.New("no connection strings")
+		return errors.New("no connection strings")
 	}
 
-	// increment r.readI
-	r.rwI++
+	r.rwIndex++
 
-	//
-	if r.rwI == len(r.rwStrings) {
-		r.rwI = 0
+	// make sure its not an overflow
+	if r.rwIndex == len(r.rwStrings) {
+		r.rwIndex = 0
 	}
 
-	return r.rwStrings[r.rwI], nil
+	// create the bolt connection
+	connWrap, err := r.newConnection(bolt_mode.ReadMode, r.rwStrings[r.rwIndex])
+	if err != nil {
+		return err
+	}
+
+	// add it to the queue
+	r.writeQueue.Enqueue(connWrap)
+
+	return nil
+}
+
+func (r *routingPool) addReadConn() error {
+	// validate we have connection strings
+	if r.readStrings == nil || len(r.readStrings) == 0 {
+		return errors.New("no connection strings")
+	}
+
+	r.readIndex++
+
+	// make sure its not an overflow
+	if r.readIndex == len(r.readStrings) {
+		r.readIndex = 0
+	}
+
+	// create the bolt connection
+	connWrap, err := r.newConnection(bolt_mode.ReadMode, r.readStrings[r.readIndex])
+	if err != nil {
+		return err
+	}
+
+	// add it to the queue
+	r.readQueue.Enqueue(connWrap)
+
+	return nil
 }
 
 func (r *routingPool) makeConnId(connType bolt_mode.AccessMode) string {
@@ -375,164 +187,320 @@ func (r *routingPool) newConnection(connType bolt_mode.AccessMode, connStr strin
 	return connWrap, nil
 }
 
-// listen for bad connections
-// todo better balancing
-func (r *routingPool) deletedConnectionsHandler() {
-	for {
-		select {
-		case rConn := <-r.readStack.connRemovedDelegate:
-			err := rConn.Connection.Close()
-			if err != nil {
-				log.Error(err.Error())
-				break
+func (r *routingPool) refreshConnections() {
+	conn, err := connection.CreateBoltConn(r.leaderConnStr)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	defer conn.Close()
+
+	err = r.routingHandler.refreshClusterInfo(conn)
+
+	newWriteStrs := r.routingHandler.getWriteConnectionStrings()
+	newReadStrs := r.routingHandler.getReadOnlyConnectionString()
+
+	var deadStrs, actualWrites, actualReads []string
+
+	// check for dead strings
+	for _, curStr := range r.rwStrings {
+		// string is not found, so it must be dead
+		if !stringSliceContains(newWriteStrs, curStr) {
+			deadStrs = append(deadStrs, curStr)
+		} else {
+			actualWrites = append(actualWrites, curStr)
+		}
+	}
+
+	for _, curStr := range r.readStrings {
+		// string is not found, so it must be dead
+		if !stringSliceContains(newReadStrs, curStr) {
+			deadStrs = append(deadStrs, curStr)
+		} else {
+			actualReads = append(actualReads, curStr)
+		}
+	}
+
+	// add anything new
+	for _, newStr := range newWriteStrs {
+		newStr = r.addAuthInfoToConnStr(newStr)
+		if !stringSliceContains(actualWrites, newStr) {
+			actualWrites = append(actualWrites, newStr)
+		}
+	}
+
+	for _, newStr := range newReadStrs {
+		newStr = r.addAuthInfoToConnStr(newStr)
+		if !stringSliceContains(actualReads, newStr) {
+			actualReads = append(actualReads, newStr)
+		}
+	}
+
+	// mark them for deletion, system will rebalance elsewhere
+	if len(deadStrs) != 0 {
+		for _, str := range deadStrs {
+			conns, ok := r.connStrLookup[str]
+			if !ok || conns == nil || len(conns) == 0 {
+				continue
 			}
 
-			// remove connection from lookup table
-			if _, ok := r.heldConns[rConn.Connection.GetConnectionId()]; ok {
-				delete(r.heldConns, rConn.Connection.GetConnectionId())
-			}
-
-			// remove from connstr lookup table
-			if _, ok := r.connStrLookup[rConn.ConnStr]; ok {
-				// find the obj and remove it
-				for i, conn := range r.connStrLookup[rConn.ConnStr] {
-					if conn == nil {
-						continue
-					}
-
-					// check if this is the one we're looking for
-					if conn.Connection.GetConnectionId() == rConn.Connection.GetConnectionId() {
-						// remove it from the slice
-						copy(r.connStrLookup[rConn.ConnStr][i:], r.connStrLookup[rConn.ConnStr][i+1:])
-						r.connStrLookup[rConn.ConnStr][len(r.connStrLookup[rConn.ConnStr])-1] = nil
-						r.connStrLookup[rConn.ConnStr] = r.connStrLookup[rConn.ConnStr][:len(r.connStrLookup[rConn.ConnStr])-1]
-						break
-					}
+			for _, markedConn := range conns {
+				if markedConn == nil {
+					continue
 				}
-			}
 
-			str, err := r.nextReadConnectionString()
+				markedConn.markForDeletion = true
+			}
+		}
+	}
+
+	r.rwStrings = actualWrites
+	r.readStrings = actualReads
+}
+
+func (r *routingPool) prune() {
+	reads := []*connectionPoolWrapper{}
+	writes := []*connectionPoolWrapper{}
+	for _, connWrap := range r.readQueue.items {
+		if connWrap.markForDeletion {
+			err := connWrap.Connection.Close()
 			if err != nil {
-				log.Error(err.Error())
-				break
+				log.Error(err)
+				continue
 			}
+		} else {
+			reads = append(reads, connWrap)
+		}
+	}
 
-			conn, err := r.newConnection(bolt_mode.ReadMode, str)
+	for _, connWrap := range r.writeQueue.items {
+		if connWrap.markForDeletion {
+			err := r.removeConn(connWrap)
 			if err != nil {
-				log.Error(err.Error())
-				break
+				log.Error(err)
+				continue
 			}
+		} else {
+			writes = append(writes, connWrap)
+		}
+	}
 
-			err = r.readStack.Push(conn)
+	r.writeQueue = NewQueueFromSlice(writes...)
+	r.readQueue = NewQueueFromSlice(reads...)
+}
+
+func (r *routingPool) balance() {
+	if r.readQueue.Size() < r.minReadIdle {
+		for r.readQueue.Size() == r.minReadIdle {
+			err := r.addReadConn()
 			if err != nil {
-				log.Error(err.Error())
+				log.Error(err)
+				continue
 			}
-			break
-		case wConn := <-r.writeStack.connRemovedDelegate:
-			err := wConn.Connection.Close()
+		}
+	}
+
+	if r.writeQueue.Size() < r.minWriteIdle {
+		for r.writeQueue.Size() == r.minWriteIdle {
+			err := r.addReadConn()
 			if err != nil {
-				log.Error(err.Error())
-				break
+				log.Error(err)
+				continue
 			}
+		}
+	}
 
-			// remove connection from lookup table
-			if _, ok := r.heldConns[wConn.Connection.GetConnectionId()]; ok {
-				delete(r.heldConns, wConn.Connection.GetConnectionId())
-			}
-
-			// remove from connstr lookup table
-			if _, ok := r.connStrLookup[wConn.ConnStr]; ok {
-				// find the obj and remove it
-				for i, conn := range r.connStrLookup[wConn.ConnStr] {
-					if conn == nil {
-						continue
-					}
-
-					// check if this is the one we're looking for
-					if conn.Connection.GetConnectionId() == wConn.Connection.GetConnectionId() {
-						// remove it from the slice
-						copy(r.connStrLookup[wConn.ConnStr][i:], r.connStrLookup[wConn.ConnStr][i+1:])
-						r.connStrLookup[wConn.ConnStr][len(r.connStrLookup[wConn.ConnStr])-1] = nil
-						r.connStrLookup[wConn.ConnStr] = r.connStrLookup[wConn.ConnStr][:len(r.connStrLookup[wConn.ConnStr])-1]
-						break
-					}
-				}
-			}
-
-			str, err := r.nextWriteConnectionString()
+	if r.writeQueue.Size() > r.maxWriteIdle {
+		for r.writeQueue.Size() == r.maxWriteIdle {
+			err := r.removeConn(r.writeQueue.Dequeue())
 			if err != nil {
-				log.Error(err.Error())
-				break
+				log.Error(err)
+				continue
 			}
+		}
+	}
 
-			conn, err := r.newConnection(bolt_mode.WriteMode, str)
+	if r.readQueue.Size() > r.maxReadIdle {
+		for r.readQueue.Size() == r.maxReadIdle {
+			err := r.removeConn(r.readQueue.Dequeue())
 			if err != nil {
-				log.Error(err.Error())
-				break
+				log.Error(err)
+				continue
 			}
-
-			err = r.writeStack.Push(conn)
-			if err != nil {
-				log.Error(err.Error())
-			}
-			break
-		case <-r.exitListenChan:
-			return
 		}
 	}
 }
 
-func (r *routingPool) BorrowRConnection() (connection.IConnection, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if !r.running {
-		return nil, errors.New("pool is not running")
+func (r *routingPool) refreshHandler() {
+	for r.isRunning() {
+		// block routine until interval is up
+		<-time.After(r.refreshInterval)
+		r.mutex.Lock()
+		// refresh connections and mark dead conns
+		r.refreshConnections()
+		// remove dead conns
+		r.prune()
+		// balance pool to params
+		r.balance()
+		r.mutex.Unlock()
 	}
-
-	conn, err := r.readStack.Pop()
-	if err != nil {
-		return nil, errors.New("error retrieving write connection")
-	}
-
-	connId := conn.Connection.GetConnectionId()
-
-	if _, ok := r.heldConns[connId]; ok {
-		delete(r.heldConns, connId)
-		r.borrowedConns[connId] = conn
-	}
-
-	return conn.Connection, nil
 }
 
-func (r *routingPool) BorrowRWConnection() (connection.IConnection, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if !r.running {
-		return nil, errors.New("pool is not running")
+func (r *routingPool) Start() error {
+	if r.isRunning() {
+		return errors.New("pool already running")
 	}
 
-	conn, err := r.writeStack.Pop()
+	r.setRunning(true)
+
+	if r.totalConns%2 == 0 {
+		r.maxWriteIdle = r.totalConns / 2
+		r.maxReadIdle = r.totalConns / 2
+	} else {
+		// write would have one more if the number of connections is odd
+		r.maxWriteIdle = ((r.totalConns - 1) / 2) + 1
+		r.maxReadIdle = (r.totalConns - 1) / 2
+	}
+
+	//conn, err := connection.CreateBoltConn(r.leaderConnStr)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//defer conn.Close()
+
+	// refresh connections and mark dead conns
+	r.refreshConnections()
+
+	for i := 0; i < r.maxWriteIdle; i++ {
+		err := r.addWriteConn()
+		if err != nil {
+			return err
+		}
+	}
+
+	for i := 0; i < r.maxReadIdle; i++ {
+		err := r.addReadConn()
+		if err != nil {
+			return err
+		}
+	}
+
+	go r.refreshHandler()
+
+	return nil
+}
+
+func (r *routingPool) Stop() error {
+	if !r.isRunning() {
+		return errors.New("routingPool is not running")
+	}
+
+	r.setRunning(false)
+
+	for r.readQueue.Size() != 0 {
+		err := r.removeConn(r.readQueue.Dequeue())
+		if err != nil {
+			return err
+		}
+	}
+
+	for r.writeQueue.Size() != 0 {
+		err := r.removeConn(r.writeQueue.Dequeue())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *routingPool) internalBorrow(queue *Queue) (*connectionPoolWrapper, error) {
+	if queue == nil {
+		return nil, errors.New("queue can not be nil")
+	}
+
+	conn := queue.Dequeue()
+	if conn == nil {
+		return nil, fmt.Errorf("stale queue")
+	}
+
+	if conn.markForDeletion {
+		err := r.removeConn(conn)
+		if err != nil {
+			return nil, err
+		}
+		return r.internalBorrow(queue)
+	}
+
+	if !conn.Connection.ValidateOpen() {
+		err := r.removeConn(conn)
+		if err != nil {
+			return nil, err
+		}
+		return r.internalBorrow(queue)
+	}
+
+	delete(r.heldConns, conn.Connection.GetConnectionId())
+	r.borrowedConns[conn.Connection.GetConnectionId()] = conn
+
+	return conn, nil
+}
+
+func (r *routingPool) BorrowRConnection() (connection.IConnection, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	connWrap, err := r.internalBorrow(r.readQueue)
 	if err != nil {
 		return nil, err
 	}
 
-	connId := conn.Connection.GetConnectionId()
+	return connWrap.Connection, nil
+}
 
-	if _, ok := r.heldConns[connId]; ok {
-		delete(r.heldConns, connId)
-		r.borrowedConns[connId] = conn
+func (r *routingPool) BorrowRWConnection() (connection.IConnection, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	connWrap, err := r.internalBorrow(r.writeQueue)
+	if err != nil {
+		return nil, err
 	}
 
-	return conn.Connection, nil
+	return connWrap.Connection, nil
+}
+
+func (r *routingPool) isRunning() bool {
+	return atomic.LoadInt32(r.running) == 1
+}
+
+func (r *routingPool) setRunning(b bool) {
+	if b {
+		atomic.StoreInt32(r.running, 1)
+	} else {
+		atomic.StoreInt32(r.running, 0)
+	}
+}
+
+func (r *routingPool) isUpdating() bool {
+	return atomic.LoadInt32(r.updating) == 1
+}
+
+func (r *routingPool) setUpdating(b bool) {
+	if b {
+		atomic.StoreInt32(r.updating, 1)
+	} else {
+		atomic.StoreInt32(r.updating, 0)
+	}
 }
 
 func (r *routingPool) Reclaim(conn connection.IConnection) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if !r.running {
+	if !r.isRunning() {
 		return errors.New("pool is not running")
 	}
 
@@ -551,9 +519,33 @@ func (r *routingPool) Reclaim(conn connection.IConnection) error {
 	delete(r.borrowedConns, connId)
 	r.heldConns[connId] = connWrap
 
-	if connWrap.ConnType == bolt_mode.WriteMode {
-		return r.writeStack.Push(connWrap)
-	} else {
-		return r.readStack.Push(connWrap)
+	// check if the connection is dead, if it is discard and make a new one
+	if !connWrap.Connection.ValidateOpen() {
+		err := r.removeConn(connWrap)
+		if err != nil {
+			if connWrap.ConnType == bolt_mode.WriteMode {
+				return r.addWriteConn()
+			} else {
+				return r.addReadConn()
+			}
+		}
 	}
+
+	if connWrap.ConnType == bolt_mode.WriteMode {
+		r.writeQueue.Enqueue(connWrap)
+	} else {
+		r.readQueue.Enqueue(connWrap)
+	}
+
+	return nil
+}
+
+func (r *routingPool) addAuthInfoToConnStr(connStr string) string {
+
+	if r.userPassPart == "" && r.tlsInfo == "" {
+		return connStr
+	}
+
+	hostPort := strings.Replace(connStr, "bolt://", "", -1)
+	return fmt.Sprintf("bolt://%s@%s%s", r.userPassPart, hostPort, r.tlsInfo)
 }

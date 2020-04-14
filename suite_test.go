@@ -24,7 +24,7 @@ func TestRunner(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	log.SetLevel("trace-bytes")
+	log.SetLevel("trace")
 	var connectionString, db string
 	var protocolVersion int
 	var isCluster bool
@@ -51,7 +51,7 @@ func TestRunner(t *testing.T) {
 		log.Info(protocolVersion)
 		log.Info(isCluster)
 	} else {
-		connectionString = "bolt://neo4j:password@0.0.0.0:7687"
+		connectionString = "bolt+routing://neo4j:changeme@localhost:7687"
 		protocolVersion = 3
 		isCluster = true
 	}
@@ -124,7 +124,7 @@ func (b *BoltTestSuite) TearDownSuite() {
 }
 
 func (b *BoltTestSuite) TestConnectionRecycleClose() {
-	poolSize := 5
+	poolSize := 6
 
 	driver, err := b.client.NewDriverPool(poolSize)
 	b.Require().Nil(err)
@@ -132,7 +132,13 @@ func (b *BoltTestSuite) TestConnectionRecycleClose() {
 
 	// should kill all of the pool
 	for i := 0; i < poolSize; i++ {
-		conn, err := driver.Open(bolt_mode.ReadMode)
+		var mode bolt_mode.AccessMode
+		if i%2 == 0 {
+			mode = bolt_mode.WriteMode
+		} else {
+			mode = bolt_mode.ReadMode
+		}
+		conn, err := driver.Open(mode)
 		b.Require().Nil(err)
 		b.Require().NotNil(conn)
 		b.Require().Nil(conn.Close())
@@ -156,7 +162,13 @@ func (b *BoltTestSuite) TestConnectionRecycleBrokenConnection() {
 
 	// should kill all of the pool
 	for i := 0; i < poolSize; i++ {
-		conn, err := driver.Open(bolt_mode.ReadMode)
+		var mode bolt_mode.AccessMode
+		if i%2 == 0 {
+			mode = bolt_mode.WriteMode
+		} else {
+			mode = bolt_mode.ReadMode
+		}
+		conn, err := driver.Open(mode)
 		b.Require().Nil(err)
 		b.Require().NotNil(conn)
 		_, _, err = conn.QueryWithDb("aasdfasdfasdfadfa", nil, b.db)
@@ -222,7 +234,7 @@ func (b *BoltTestSuite) connectionTest(conn connection.IConnection, mode bolt_mo
 	}}[0][0], all[0][0])
 
 	// test basic exec
-	res, err := conn.ExecWithDb("create (:TestNode{id:$id})", map[string]interface{}{
+	res, err := conn.ExecWithDb("create (t:TestNode{id:$id}) return t", map[string]interface{}{
 		"id": testFrom,
 	}, db)
 	if mode == bolt_mode.WriteMode {

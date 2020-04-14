@@ -84,7 +84,9 @@ func TraceBytesFromBuf(b *bytes.Buffer) {
 
 func TraceBytes(b []byte) {
 	if level >= TraceBytesLevel {
+		TraceBytesLog.Println("start byte printout")
 		TraceBytesLog.Print(sprintByteHex(b))
+		TraceBytesLog.Println("end byte printout")
 	}
 }
 
