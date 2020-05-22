@@ -72,6 +72,10 @@ jobs:
       run: |
         echo "sleeping 90 seconds to let the cluster set itself up"
         sleep 90
+        docker ps
+        docker logs compose_core1_1
+        docker logs compose_core2_1
+        docker logs compose_core3_1
     - name: Run Integration Test
       run: |
         export TEST_ACTIONS=true
