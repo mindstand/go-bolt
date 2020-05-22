@@ -127,8 +127,38 @@ func (i FailureMessage) AllFields() []interface{} {
 	return []interface{}{i.Metadata}
 }
 
+// GetCode returns the internal error code from neo4j
+func (i FailureMessage) GetCode() string {
+	code, ok := i.Metadata["code"]
+	if !ok {
+		return "none"
+	}
+
+	codeStr, ok := code.(string)
+	if !ok {
+		return "failed to parse code string"
+	}
+
+	return codeStr
+}
+
+// GetMessage extracts the internal failure message returned by neo4j
+func (i FailureMessage) GetMessage() string {
+	msg, ok := i.Metadata["message"]
+	if !ok {
+		return "none"
+	}
+
+	msgStr, ok := msg.(string)
+	if !ok {
+		return "failed to parse message to string"
+	}
+
+	return msgStr
+}
+
 // Error is the implementation of the Golang error interface so a failure message
 // can be treated like a normal error
 func (i FailureMessage) Error() string {
-	return fmt.Sprintf("%#v", i)
+	return fmt.Sprintf("code: [%s]; message: [%s]", i.GetCode(), i.GetMessage())
 }

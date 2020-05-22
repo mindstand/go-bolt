@@ -2,14 +2,15 @@ package goBolt
 
 import (
 	"fmt"
-	"github.com/mindstand/go-bolt/bolt_mode"
-	"github.com/mindstand/go-bolt/connection"
-	"github.com/mindstand/go-bolt/log"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/mindstand/go-bolt/bolt_mode"
+	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/log"
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -163,7 +164,7 @@ func (b *BoltTestSuite) TestConnectionRecycleBrokenConnection() {
 	b.Require().NotNil(driver)
 
 	// should kill all of the pool
-	for i := 0; i < poolSize; i++ {
+	for i := 0; i < poolSize*2; i++ {
 		var mode bolt_mode.AccessMode
 		if i%2 == 0 {
 			mode = bolt_mode.WriteMode
