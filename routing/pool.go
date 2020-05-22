@@ -51,6 +51,7 @@ type routingPool struct {
 	readQueue   *Queue
 }
 
+// NewRoutingPool creates a new routing pools
 func NewRoutingPool(leaderConnStr string, numConns int, refreshInterval time.Duration, authPart, tlsInfo string) (IRoutingPool, error) {
 	if leaderConnStr == "" {
 		return nil, errors.New("leaderConnStr can not be nil")
