@@ -3,13 +3,14 @@ package routing
 import (
 	"errors"
 	"fmt"
-	"github.com/mindstand/go-bolt/bolt_mode"
-	"github.com/mindstand/go-bolt/connection"
-	"github.com/mindstand/go-bolt/log"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/mindstand/go-bolt/bolt_mode"
+	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/log"
 )
 
 type routingPool struct {
@@ -126,7 +127,7 @@ func (r *routingPool) addWriteConn() error {
 	}
 
 	// create the bolt connection
-	connWrap, err := r.newConnection(bolt_mode.ReadMode, r.rwStrings[r.rwIndex])
+	connWrap, err := r.newConnection(bolt_mode.WriteMode, r.rwStrings[r.rwIndex])
 	if err != nil {
 		return err
 	}
@@ -162,7 +163,7 @@ func (r *routingPool) addReadConn() error {
 	return nil
 }
 
-func (r *routingPool) makeConnId(connType bolt_mode.AccessMode) string {
+func (r *routingPool) makeConnID(connType bolt_mode.AccessMode) string {
 	return fmt.Sprintf("%v-%s", connType, stringWithCharset(50, charset))
 }
 
@@ -172,7 +173,7 @@ func (r *routingPool) newConnection(connType bolt_mode.AccessMode, connStr strin
 		return nil, err
 	}
 
-	conn.SetConnectionId(r.makeConnId(connType))
+	conn.SetConnectionId(r.makeConnID(connType))
 
 	connWrap := &connectionPoolWrapper{
 		Connection:      conn,
@@ -301,17 +302,16 @@ func (r *routingPool) balance() {
 		}
 	}
 
+	// make sure amount of conns is correct and within limits
 	if r.writeQueue.Size() < r.minWriteIdle {
 		for r.writeQueue.Size() == r.minWriteIdle {
-			err := r.addReadConn()
+			err := r.addWriteConn()
 			if err != nil {
 				log.Error(err)
 				continue
 			}
 		}
-	}
-
-	if r.writeQueue.Size() > r.maxWriteIdle {
+	} else if r.writeQueue.Size() > r.maxWriteIdle {
 		for r.writeQueue.Size() == r.maxWriteIdle {
 			err := r.removeConn(r.writeQueue.Dequeue())
 			if err != nil {
@@ -321,7 +321,16 @@ func (r *routingPool) balance() {
 		}
 	}
 
-	if r.readQueue.Size() > r.maxReadIdle {
+	// make sure amount of conns is correct and within limits
+	if r.readQueue.Size() < r.minReadIdle {
+		for r.readQueue.Size() == r.minReadIdle {
+			err := r.addReadConn()
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+		}
+	} else if r.readQueue.Size() > r.maxReadIdle {
 		for r.readQueue.Size() == r.maxReadIdle {
 			err := r.removeConn(r.readQueue.Dequeue())
 			if err != nil {
