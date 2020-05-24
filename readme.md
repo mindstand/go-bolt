@@ -15,7 +15,7 @@ go get -u github.com/mindstand/go-bolt
 - Supports bolt protocol versions 1-4
 - Supports multi db in bolt protocol v4
 - Connection Pooling
-- `bolt+routing` for HA clusters
+- `bolt+routing` for casual clusters
 - TLS support
 
 ## Current todo's
